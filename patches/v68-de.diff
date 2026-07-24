@@ -1,0 +1,20 @@
+--- de.py.bak	2026-07-22 22:42:02
++++ venv/lib/python3.14/site-packages/mgz/header/de.py	2026-07-22 22:56:18
+@@ -45,6 +45,8 @@
+     "custom_ai"/Flag,
+     If(lambda ctx: find_save_version(ctx) >= 25.06, "handicap"/Bytes(8)),
+     If(lambda ctx: find_save_version(ctx) >= 64.3, "unknown_de_64_3" / Int32ul),
++    # save_version 68 (mid-2026 DE patch) added a trailing per-player de_string
++    "unknown_de_68"/If(lambda ctx: find_save_version(ctx) >= 67.5, de_string),
+ )
+ 
+ string_block = Struct(
+@@ -178,5 +180,7 @@
+     "ver37"/If(lambda ctx: find_save_version(ctx) >= 37, Struct(
+         Int32ul,
+         Int32ul
+-    ))
++    )),
++    # save_version 68 (mid-2026 DE patch) added 8 trailing bytes before the ai section
++    If(lambda ctx: find_save_version(ctx) >= 67.5, Bytes(8)),
+ )

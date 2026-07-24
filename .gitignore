@@ -1,0 +1,13 @@
+# Python virtualenv
+venv/
+
+# Editable mgz clone — separate git repo (branch support-save-version-68).
+# Reproduce per README; not vendored here.
+aoc-mgz/
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
