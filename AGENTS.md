@@ -70,6 +70,29 @@ works: header + body + actions + timeseries.
   Unused civ synergy: Huns TEAM bonus stables +20% work rate (buffs ricky/studious cav),
   Franks mounted +20% HP, Mongols scout-line +20/30% HP Castle/Imp — a cavalry team comp
   playing trash-only armies.
+- `vill_ledger.py [G1 G2 G3 G4]` — **per-villager task ledger** to Castle click+120s (added
+  2026-07-25 evening; hardcodes that day's 4 replays in FILES — generalize paths to reuse).
+  KEY unlock: `m.gaia` WORKS on v68 (12k objects w/ instance_id+name+position: trees, Gold/
+  Stone Mine, Forage Bush, herdables — these Arabia seeds use COWS) and `p.objects` gives
+  starting vill/scout/TC ids, so every human right-click (ORDER) resolves to an actual
+  resource. Humans task vills via ORDER, never WORK (WORK is AI-only). The command-addressable
+  TC id = DE_QUEUE object_ids (NOT the multi-part p.objects Town Center entries). Model:
+  build busy = BuildTime×3/(2+builders), builders auto-continue after dropsites/farms but
+  IDLE after houses/military/walls; tree/mine/forage gathers indefinite; herdables indefinite
+  (DE auto-continues in range — do NOT cap hunt, causes false idle); obj-target ORDERs within
+  2.5 tiles of own Farm builds = farm tasks; birth idle = order-matched TC-sim births vs
+  first commands, only meaningful when no TC resource rally exists. Research ledger: a later
+  re-click of the same tech PROVES the earlier click was cancelled. Caveats: villager death
+  is indistinguishable from idle; all idle figures are lower bounds.
+  Findings (all 4 games): **Olive & studious set a TC resource rally in ZERO games; ricky in
+  3 of 4** — birth idle Olive 4938/757/0/4613s, studious 5965/4458/701/1365s, ricky ~0 when
+  rallying but 3583s in G2 (the game he skipped it). Olive strands builder squads after
+  military buildings (3 vills +350s each after a 22:25 Archery Range in G4 — during the wall
+  fight; +508s after a G1 Stable) and has a TECH-CANCEL HABIT (Loom clk 3:31 G4 cancelled →
+  redone 37:21; Wheelbarrow 12:37 G2 cancelled → 24:42; Wheelbarrow 24:41 G3 cancelled).
+  ricky parks vills on ground and forgets them (726-834s "after move" idles every game).
+  studious double-leaks at the TC (idle TC + untasked new vills). Research queue-waits are
+  a non-problem (worst 47s) — upgrade lateness is absence, not queueing.
 
 ### mgz model API cheatsheet (`from mgz.model import parse_match`)
 - `m.players[i]`: `.name .civilization .civilization_id .winner .team_id .eapm .timeseries
