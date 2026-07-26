@@ -82,8 +82,20 @@ works: header + body + actions + timeseries.
   (DE auto-continues in range — do NOT cap hunt, causes false idle); obj-target ORDERs within
   2.5 tiles of own Farm builds = farm tasks; birth idle = order-matched TC-sim births vs
   first commands, only meaningful when no TC resource rally exists. Research ledger: a later
-  re-click of the same tech PROVES the earlier click was cancelled. Caveats: villager death
-  is indistinguishable from idle; all idle figures are lower bounds.
+  re-click of the same tech PROVES the earlier click was cancelled.
+  **Death-vs-idle disambiguation (v3, 2026-07-26):** an idle window CLOSED by a later command
+  on the same villager is death-proof (villager provably alive) — this certifies ALL birth
+  idle and mid-timeline idle. Only "tail" windows (no command ever again) are ambiguous;
+  classify those via total_objects delta around window start + fight-window overlap
+  (in-fight or negative Δ → LIKELY DEAD; quiet+flat → likely idle). ORDER onto own TC id =
+  garrison/drop-off, busy not idle. Residual limits: mid-window deaths in "likely idle"
+  tails undetectable (Δ only sampled near start); objΔ is net (production masks deaths).
+  Corrections this produced: G4 Olive's 3 range-builders at 22:25 DIED in the wall fight
+  (objΔ=-16, in-fight) — he built a reactive forward range mid-attack and lost the builders;
+  G1's +508s "after Stable" was also a death. G3's twin 1304s vills (5:00, objΔ=0, no fight)
+  are genuinely forgotten villagers. Pre-Castle vill deaths ≈1-4/game/player (no Loom!).
+  Confirmed-idle totals (death-proof): Olive 4965/1319/498/5400s, studious 6663/4793/1000/
+  1699s, ricky 515/3583/171/474s — the rally-point finding stands untouched.
   Findings (all 4 games): **Olive & studious set a TC resource rally in ZERO games; ricky in
   3 of 4** — birth idle Olive 4938/757/0/4613s, studious 5965/4458/701/1365s, ricky ~0 when
   rallying but 3583s in G2 (the game he skipped it). Olive strands builder squads after

@@ -48,9 +48,12 @@ def mmss(s):
     return f'{int(s)//60}:{int(s)%60:02d}'
 
 
-def analyze(replay, out_label):
+def analyze(replay, out_label, extract_json):
     m = parse_match(open(replay, 'rb'))
     gaia = {o.instance_id: (o.name, o.position) for o in m.gaia}
+    ex = json.load(open(extract_json))
+    ts_by_name = {q['name']: q['ts'] for q in ex['players']}
+    fights = ex['fight_windows']
     print(f'\n{"="*94}\n{out_label}')
 
     for p in m.players:
@@ -120,6 +123,9 @@ def analyze(replay, out_label):
                 elif tid in (4294967295, -1, None) and a.position:
                     for o in oids:
                         cmds[o].append((t, 'ground', None, None))
+                elif tid in tc_ids:
+                    for o in oids:
+                        cmds[o].append((t, 'tc', None, None))  # garrison/drop-off: busy, not idle
                 else:
                     for o in oids:
                         cmds[o].append((t, 'obj', None, None))
@@ -162,12 +168,39 @@ def analyze(replay, out_label):
                 if f > b + 5:
                     birth_idle += min(f, H) - b - 5
 
+        # timeseries lookup for tail corroboration
+        ts = ts_by_name.get(p.name, [])
+
+        def obj_delta(t0, t1):
+            a = [r[1] for r in ts if r[0] <= t0]
+            b = [r[1] for r in ts if r[0] <= t1]
+            return (b[-1] - a[-1]) if a and b else None
+
+        def in_fight(t):
+            return any(w['t0'] - 30 <= t <= w['t1'] + 30 for w in fights)
+
         idle = Counter()
-        stories = []
+        stories, tails = [], []
         census = Counter()
         for v in sorted(vill_ids):
             cl = sorted(cmds.get(v, []))
             vidle, busy_end, details = 0, None, []
+
+            def window(end, nxt, reason):
+                nonlocal vidle
+                gap = nxt[0] - end
+                if gap <= 20:
+                    return
+                if nxt[1] == 'END':
+                    # tail: villager never commanded again — idle OR dead
+                    d = obj_delta(end - 30, end + 90)
+                    tails.append((v, end, gap - 20, reason,
+                                  'in-fight' if in_fight(end) else '',
+                                  d))
+                else:
+                    vidle += gap - 20
+                    details.append(f'{mmss(end)} +{int(gap-20)}s after {reason}')
+
             for (t, kind, d1, d2), nxt in zip(cl, cl[1:] + [(H, 'END', None, None)]):
                 start = t if busy_end in (None, 'inf') else max(t, busy_end)
                 if kind == 'build':
@@ -179,22 +212,16 @@ def analyze(replay, out_label):
                         busy_end = 'inf'
                     else:
                         busy_end = end
-                        gap = nxt[0] - end
-                        if gap > 20:
-                            vidle += gap - 20
-                            details.append(f'{mmss(end)} +{int(gap-20)}s after {d1}')
+                        window(end, nxt, d1)
                 elif kind == 'gather':
                     census[d1] += 1
                     busy_end = 'inf'
                 elif kind in ('ground', 'move'):
                     end = start + 20
-                    gap = nxt[0] - end
-                    if gap > 20:
-                        vidle += gap - 20
-                        details.append(f'{mmss(end)} +{int(gap-20)}s after move')
+                    window(end, nxt, 'move')
                     busy_end = end
                 else:
-                    busy_end = 'inf'
+                    busy_end = 'inf'  # tc/obj/unknown: assume busy
             if vidle > 0:
                 idle['task'] += vidle
                 stories.append((vidle, v, details[:3]))
@@ -207,10 +234,15 @@ def analyze(replay, out_label):
         print(f'  villagers: {queued} queued +{len(start_vills)} start; {len(vill_ids)} task-classified ids; '
               f'obj-only ids (military/untracked): {sum(1 for o,cl in cmds.items() if o not in vill_ids and any(k=="obj" for _,k,_,_ in cl))}')
         print(f'  TC rally: {"YES — " + str(sum(1 for _, r in rallies if r)) + " resource rallies" if res_rally else "NEVER set to a resource"}')
-        print(f'  IDLE lower-bound: birth {int(birth_idle)}s' +
+        print(f'  CONFIRMED idle (villager provably alive after window): birth {int(birth_idle)}s' +
               (' (n/a — rally covers births)' if res_rally else '') +
-              f' + post-task {int(idle["task"])}s = {int(birth_idle + idle["task"])}s '
-              f'(= {int((birth_idle + idle["task"]) / 25)} villager-train-times)')
+              f' + mid-timeline {int(idle["task"])}s = {int(birth_idle + idle["task"])}s')
+        tail_tot = sum(g for _, _, g, _, _, _ in tails)
+        print(f'  UNRESOLVED tails (no command ever again): {len(tails)} windows, {int(tail_tot)}s')
+        for v, end, gap, reason, fight, d in sorted(tails, key=lambda x: -x[2])[:6]:
+            verdict = 'LIKELY DEAD' if (fight or (d is not None and d < 0)) else 'likely idle'
+            print(f'    vill {v} silent from {mmss(end)} ({int(gap)}s, after {reason}) '
+                  f'{fight} objΔ={d} -> {verdict}')
         print(f'  task census: ' + ', '.join(f'{k}:{v}' for k, v in census.most_common()))
         for vidle, v, det in sorted(stories, reverse=True)[:4]:
             print(f'    vill {v}: {int(vidle)}s — ' + '; '.join(det))
@@ -235,8 +267,9 @@ def analyze(replay, out_label):
 
 
 SAVE = os.path.expanduser('~/Library/Application Support/Feral Interactive/Age Of Empires II/VFS/User/Games/Age of Empires 2 DE/76561198081802645/savegame')
-FILES = [('G1', '144944'), ('G2', '151015'), ('G3', '165218'), ('G4', '172654')]
+FILES = [('G1', '144944', 'g1'), ('G2', '151015', 'g2'), ('G3', '165218', 'g3'), ('G4', '172654', 'g4')]
 which = sys.argv[1:] or ['G1', 'G2', 'G3', 'G4']
-for gl, ts in FILES:
+for gl, ts, gj in FILES:
     if gl in which:
-        analyze(f'{SAVE}/MP Replay v101.103.48987.0 @2026.07.25 {ts} (1).aoe2record', gl)
+        analyze(f'{SAVE}/MP Replay v101.103.48987.0 @2026.07.25 {ts} (1).aoe2record', gl,
+                f'/tmp/aoe2-today/{gj}.json')
