@@ -164,6 +164,14 @@ works: header + body + actions + timeseries.
 - `m.duration .map.name .map.dimension .chat .diplomacy_type .type`.
 - Positions are on the tile grid (0..dimension). ~60% of Olive's commands carry real coords.
 
+- `reports/make_campaign.py <out.html> <replays...>` — **reusable campaign-report generator**
+  (added 2026-07-26): N-game squad report from `reports/templates/campaign.html` (the
+  generalized "One Saturday" page — session tempo trend, eco/trade, aggression profile, day
+  totals, auto advice cards, per-game tabs w/ animated map + combat log). Renders fully from
+  computed defaults; `--editorial notes.json` overrides hero/tiles/per-game narrative/advice
+  (see reports/README.md). Embeds the audited methodology (POV dedup, last-click research,
+  click→entered, capped attrition windows).
+
 ## Published artifacts (claude.ai) — update in place with the Artifact tool's `url=` param
 - **After-action report** (Arabia 2v2 loss): force curve, composition matchup, upgrade tempo,
   animated + heatmap map-control view. `https://claude.ai/code/artifact/16f89f0c-c92c-44ed-b288-2567a4b06704`

@@ -1,0 +1,787 @@
+<title>__TITLE__</title>
+<style>
+  :root{
+    --ground:#efece4; --panel:#faf8f2; --panel-2:#f4f1e8; --sunken:#efebe1;
+    --ink:#20242b; --ink-2:#535a65; --muted:#888e99; --hair:#dbd6ca; --hair-2:#e7e2d6;
+    --grid:rgba(60,55,45,.09);
+    --bronze:#8a5f2b; --amber:#c98a2b; --amber-fill:rgba(201,138,43,.15);
+    --enemy:#c0392b; --enemy-fill:rgba(192,57,43,.1);
+    --good:#2f8c63; --warn:#c98a2b; --bad:#c0392b;
+    --a0:#3b7fc4; --a1:#1f9e8f; --a2:#9c5cb0;
+    --shadow:0 1px 2px rgba(40,35,25,.05),0 10px 30px rgba(40,35,25,.07);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#0f1115; --panel:#171a20; --panel-2:#1d212a; --sunken:#12151a;
+    --ink:#e9e7e1; --ink-2:#a6abb5; --muted:#6c727c; --hair:#2a2e37; --hair-2:#23272f;
+    --grid:rgba(200,195,185,.08);
+    --bronze:#d9a441; --amber:#c08432; --amber-fill:rgba(192,132,50,.18);
+    --enemy:#e5646a; --enemy-fill:rgba(229,100,106,.12);
+    --good:#37a877; --warn:#d9a441; --bad:#e5646a;
+    --a0:#5091cf; --a1:#2ba595; --a2:#a86fbd;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.42);
+  }}
+  :root[data-theme="light"]{
+    --ground:#efece4; --panel:#faf8f2; --panel-2:#f4f1e8; --sunken:#efebe1;
+    --ink:#20242b; --ink-2:#535a65; --muted:#888e99; --hair:#dbd6ca; --hair-2:#e7e2d6;
+    --grid:rgba(60,55,45,.09);
+    --bronze:#8a5f2b; --amber:#c98a2b; --amber-fill:rgba(201,138,43,.15);
+    --enemy:#c0392b; --enemy-fill:rgba(192,57,43,.1);
+    --good:#2f8c63; --warn:#c98a2b; --bad:#c0392b;
+    --a0:#3b7fc4; --a1:#1f9e8f; --a2:#9c5cb0;
+    --shadow:0 1px 2px rgba(40,35,25,.05),0 10px 30px rgba(40,35,25,.07);
+  }
+  :root[data-theme="dark"]{
+    --ground:#0f1115; --panel:#171a20; --panel-2:#1d212a; --sunken:#12151a;
+    --ink:#e9e7e1; --ink-2:#a6abb5; --muted:#6c727c; --hair:#2a2e37; --hair-2:#23272f;
+    --grid:rgba(200,195,185,.08);
+    --bronze:#d9a441; --amber:#c08432; --amber-fill:rgba(192,132,50,.18);
+    --enemy:#e5646a; --enemy-fill:rgba(229,100,106,.12);
+    --good:#37a877; --warn:#d9a441; --bad:#e5646a;
+    --a0:#5091cf; --a1:#2ba595; --a2:#a86fbd;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.42);
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--ground); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif; line-height:1.55; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px; margin:0 auto; padding:clamp(26px,4.5vw,60px) clamp(16px,4vw,40px) 90px}
+  .serif{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-variant-numeric:tabular-nums}
+  .eyebrow{font:600 12px/1 ui-monospace,Menlo,monospace; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--bronze); display:flex; align-items:center; gap:12px; margin:0 0 16px}
+  .eyebrow::after{content:""; flex:1; height:1px; background:var(--hair)}
+  h1{font-family:"Iowan Old Style",Palatino,Georgia,serif; font-weight:600;
+    font-size:clamp(34px,6.4vw,64px); line-height:1; letter-spacing:-.01em; margin:0; text-wrap:balance}
+  .sub{font-size:clamp(15px,2vw,18px); color:var(--ink-2); margin:16px 0 0; max-width:64ch; text-wrap:pretty}
+  .sub b{color:var(--ink)}
+  .sec{margin-top:52px}
+  .sec-h{font-family:"Iowan Old Style",Palatino,Georgia,serif; font-size:24px; margin:0 0 4px}
+  .sec-d{color:var(--ink-2); font-size:14.5px; margin:0 0 18px; max-width:66ch}
+  .card{background:var(--panel); border:1px solid var(--hair); border-radius:8px; box-shadow:var(--shadow)}
+  svg{display:block; width:100%; height:auto; overflow:visible}
+  .axlab{fill:var(--muted); font:11px ui-monospace,Menlo,monospace}
+  .gl{stroke:var(--grid); stroke-width:1}
+  .mk-lab{font:600 10.5px ui-monospace,Menlo,monospace}
+
+  /* day scoreboard */
+  .board{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:30px}
+  @media(max-width:680px){.board{grid-template-columns:1fr}}
+  .gchip{padding:16px 18px; position:relative; overflow:hidden; cursor:pointer; border-radius:8px;
+    background:var(--panel); border:1px solid var(--hair); box-shadow:var(--shadow); text-align:left; font:inherit; color:inherit}
+  .gchip:hover{border-color:var(--bronze)}
+  .gchip:focus-visible{outline:2px solid var(--bronze); outline-offset:2px}
+  .gchip::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--enemy)}
+  .gchip .n{font:600 11px/1 ui-monospace,Menlo,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+  .gchip .t{font-family:"Iowan Old Style",Palatino,Georgia,serif; font-size:19px; margin:8px 0 3px}
+  .gchip .m{font:12px ui-monospace,Menlo,monospace; color:var(--ink-2)}
+
+  /* stat tiles */
+  .tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px}
+  @media(max-width:680px){.tiles{grid-template-columns:1fr}}
+  .tile{background:var(--panel); border:1px solid var(--hair); border-radius:8px; box-shadow:var(--shadow);
+    padding:18px; position:relative; overflow:hidden}
+  .tile::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--amber)}
+  .tile.red::before{background:var(--enemy)} .tile.green::before{background:var(--good)}
+  .tile .k{font:600 10.5px/1 ui-monospace,Menlo,monospace; letter-spacing:.13em; text-transform:uppercase; color:var(--muted)}
+  .tile .v{font:600 30px ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums; margin:10px 0 2px; letter-spacing:-.02em}
+  .tile .v small{font-size:15px; color:var(--ink-2); font-weight:500}
+  .tile .s{font-size:13px; color:var(--ink-2)}
+
+  .chartbox{padding:20px 22px 12px; margin-top:16px}
+  .legend{display:flex; gap:16px 20px; flex-wrap:wrap; font:11.5px ui-monospace,Menlo,monospace; color:var(--ink-2); margin-top:8px}
+  .legend span{display:flex; align-items:center; gap:6px}
+  .legend i{width:12px; height:12px; border-radius:3px; display:inline-block}
+
+  /* advice cards */
+  .advice{display:flex; flex-direction:column; gap:16px; margin-top:16px}
+  .adv{background:var(--panel); border:1px solid var(--hair); border-radius:8px; box-shadow:var(--shadow); overflow:hidden}
+  .adv .top{display:flex; align-items:center; gap:14px; padding:15px 20px; border-bottom:1px solid var(--hair-2); position:relative}
+  .adv .top::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--pc)}
+  .badge{width:40px; height:40px; border-radius:8px; flex:none; display:flex; align-items:center; justify-content:center;
+    font:600 15px ui-monospace,Menlo,monospace; color:#fff; background:var(--pc)}
+  .adv h3{margin:0; font-family:"Iowan Old Style",Palatino,Georgia,serif; font-size:19px}
+  .adv .role{font:600 11px ui-monospace,Menlo,monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--pc)}
+  .adv .body{display:grid; grid-template-columns:1.05fr 1fr; gap:0}
+  @media(max-width:680px){.adv .body{grid-template-columns:1fr}}
+  .adv .ev{padding:15px 20px; border-right:1px solid var(--hair-2); font-size:13.5px; color:var(--ink-2)}
+  @media(max-width:680px){.adv .ev{border-right:none; border-bottom:1px solid var(--hair-2)}}
+  .adv .ev b{color:var(--ink)}
+  .adv .ev .row3{display:flex; gap:16px; margin-top:10px; font:12px ui-monospace,Menlo,monospace; color:var(--muted)}
+  .adv .ev .row3 b{display:block; font-size:15px; color:var(--ink); margin-top:2px}
+  .adv .fx{padding:15px 20px}
+  .adv .fx .fh{font:600 10.5px ui-monospace,Menlo,monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:8px}
+  .adv .fx ol{margin:0; padding-left:20px; font-size:13.5px; color:var(--ink-2)}
+  .adv .fx li{margin-bottom:7px} .adv .fx li b{color:var(--ink)}
+  .adv .fx li::marker{color:var(--pc); font-weight:600}
+
+  /* tabs */
+  .tabs{display:flex; gap:8px; margin:18px 0 0; flex-wrap:wrap}
+  .tab{font:600 13px ui-monospace,Menlo,monospace; padding:9px 16px; border-radius:999px; cursor:pointer;
+    background:var(--panel); border:1px solid var(--hair); color:var(--ink-2)}
+  .tab:hover{border-color:var(--bronze); color:var(--ink)}
+  .tab.on{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+  .tab:focus-visible{outline:2px solid var(--bronze); outline-offset:2px}
+  .gpanel{margin-top:18px}
+  .gp-head{display:flex; justify-content:space-between; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:4px}
+  .gp-head h3{font-family:"Iowan Old Style",Palatino,Georgia,serif; font-size:26px; margin:0}
+  .gp-head .meta{font:12.5px ui-monospace,Menlo,monospace; color:var(--muted)}
+  .gp-sum{font-size:14.5px; color:var(--ink-2); max-width:70ch; margin:6px 0 16px}
+  .gp-sum b{color:var(--ink)}
+
+  .strip{padding:18px 20px 8px; margin-bottom:16px}
+  .moments{margin:16px 0 0; padding:0 0 0 0; list-style:none; display:flex; flex-direction:column; gap:8px}
+  .moments li{display:flex; gap:10px; align-items:baseline; font-size:13.5px; color:var(--ink-2)}
+  .moments .tm{font:600 12px ui-monospace,Menlo,monospace; color:var(--bronze); flex:none; min-width:44px}
+  .moments b{color:var(--ink)}
+
+  /* map */
+  .map-wrap{padding:20px 22px 22px; margin-top:16px}
+  .mapgrid{display:grid; grid-template-columns:minmax(0,1fr) 185px; gap:20px; align-items:start}
+  @media(max-width:680px){.mapgrid{grid-template-columns:1fr}}
+  #mapcv{width:100%; aspect-ratio:1/1; display:block; border-radius:8px; background:var(--sunken); border:1px solid var(--hair-2)}
+  .maplg{display:flex; flex-direction:column; gap:7px; font:12px ui-monospace,Menlo,monospace}
+  .maplg .r{display:flex; align-items:center; gap:8px; color:var(--ink-2)}
+  .maplg .r i{width:11px; height:11px; border-radius:3px; flex:none}
+  .maplg .r.en i{border-radius:50%}
+  .controls{display:flex; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap}
+  .play{width:40px; height:40px; border-radius:50%; border:1px solid var(--hair); background:var(--panel-2); color:var(--ink);
+    cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; flex:none}
+  .play:hover{border-color:var(--bronze)} .play:focus-visible{outline:2px solid var(--bronze); outline-offset:2px}
+  .scrub{flex:1; min-width:140px; accent-color:var(--bronze)}
+  .clock{font:600 14px ui-monospace,Menlo,monospace; min-width:64px; text-align:right}
+  .heat{background:none; border:1px solid var(--hair); color:var(--ink-2); cursor:pointer; font:12px ui-monospace,Menlo,monospace;
+    padding:8px 12px; border-radius:5px; white-space:nowrap}
+  .heat:hover{border-color:var(--bronze); color:var(--ink)}
+  .heat.on{background:var(--enemy-fill); border-color:var(--enemy); color:var(--enemy)}
+  .heat:focus-visible{outline:2px solid var(--bronze); outline-offset:2px}
+
+  /* combat log */
+  .clog{padding:20px 22px 14px; margin-top:16px}
+  .rec{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px}
+  .pill{font:600 12px ui-monospace,Menlo,monospace; padding:6px 11px; border-radius:999px; border:1px solid var(--hair)}
+  .pill.win{color:var(--good); background:color-mix(in srgb,var(--good) 12%,transparent); border-color:transparent}
+  .pill.loss{color:var(--bad); background:color-mix(in srgb,var(--bad) 12%,transparent); border-color:transparent}
+  .pill.plain{color:var(--ink-2)}
+  .clegend{display:flex; gap:18px; flex-wrap:wrap; font:11.5px ui-monospace,Menlo,monospace; color:var(--ink-2); margin-top:6px}
+  .clegend span{display:flex; align-items:center; gap:6px}
+  .clegend i{width:11px; height:11px; border-radius:2px}
+  .ftip{position:absolute; pointer-events:none; opacity:0; transition:opacity .1s; background:var(--ink); color:var(--ground);
+    padding:8px 11px; border-radius:6px; font:11.5px/1.5 ui-monospace,Menlo,monospace; white-space:nowrap; z-index:6;
+    transform:translate(-50%,-112%); box-shadow:0 6px 20px rgba(0,0,0,.3)}
+  .ftip b.g{color:var(--good)} .ftip b.r{color:var(--bad)}
+
+  /* aggression + day totals */
+  .agg{display:flex; flex-direction:column; gap:14px; padding:20px 22px}
+  .agg .arow{display:grid; grid-template-columns:120px 1fr 150px; gap:14px; align-items:center}
+  @media(max-width:680px){.agg .arow{grid-template-columns:90px 1fr}; .agg .arow .pct{display:none}}
+  .agg .nm{font:600 12.5px ui-monospace,Menlo,monospace}
+  .agg .bar{display:flex; height:22px; border-radius:4px; overflow:hidden; gap:2px}
+  .agg .seg{height:100%}
+  .agg .pct{font:11.5px ui-monospace,Menlo,monospace; color:var(--muted); text-align:right}
+  .totals{display:block; overflow-x:auto; margin-top:16px}
+  .totals table{margin-top:0}
+
+  /* per-game: forces, pulse, tech */
+  .forces{display:grid; grid-template-columns:1.15fr 1fr; gap:0; margin-top:16px}
+  @media(max-width:680px){.forces{grid-template-columns:1fr}}
+  .forces .fl{padding:18px 20px; border-right:1px solid var(--hair-2)}
+  @media(max-width:680px){.forces .fl{border-right:none; border-bottom:1px solid var(--hair-2)}}
+  .forces .fr{padding:18px 20px}
+  .fh2{font:600 10.5px ui-monospace,Menlo,monospace; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); margin-bottom:10px}
+  .comp .prow{display:grid; grid-template-columns:104px 1fr 40px; gap:8px; align-items:center; font:12px ui-monospace,Menlo,monospace; margin-bottom:5px}
+  .comp .prow .nm{color:var(--ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .comp .prow .bar{height:9px; border-radius:2px}
+  .comp .prow .ct{text-align:right; color:var(--muted)}
+  .comp .pname{font:600 12px ui-monospace,Menlo,monospace; margin:10px 0 6px}
+  .comp .pname:first-child{margin-top:0}
+  .foe{background:var(--enemy-fill); border:1px solid color-mix(in srgb,var(--enemy) 25%,transparent); border-radius:6px; padding:11px 13px; margin-bottom:10px}
+  .foe h5{margin:0 0 6px; font:600 12.5px ui-monospace,Menlo,monospace; color:var(--enemy)}
+  .foe .u{font:11.5px ui-monospace,Menlo,monospace; color:var(--ink-2); display:flex; justify-content:space-between; padding:1.5px 0}
+  .pulse{padding:18px 20px 14px; margin-top:16px}
+  .pulse .lane{display:grid; grid-template-columns:104px 1fr 34px; gap:10px; align-items:end; margin-bottom:10px}
+  .pulse .nm{font:600 12px ui-monospace,Menlo,monospace; align-self:center}
+  .pulse .bars{display:flex; gap:3px; align-items:flex-end; height:34px}
+  .pulse .b{flex:1; border-radius:2px 2px 0 0; min-height:2px}
+  .pulse .b.zero{background:var(--enemy)!important; opacity:.35; height:3px!important}
+  .pulse .tot{font:11.5px ui-monospace,Menlo,monospace; color:var(--muted); text-align:right; align-self:center}
+  .ftable{overflow-x:auto; margin-top:10px}
+  .ftable td.won{color:var(--good)} .ftable td.lost{color:var(--bad)} .ftable td.trade{color:var(--warn)}
+  .ftable tr.eg td{color:var(--muted); font-style:italic}
+
+  /* method + table */
+  .method{margin-top:52px; padding:20px 24px; background:var(--panel-2); border:1px solid var(--hair); border-radius:8px;
+    font-size:13px; color:var(--ink-2)}
+  .method h4{margin:0 0 8px; font-family:"Iowan Old Style",Palatino,Georgia,serif; font-size:16px; color:var(--ink)}
+  .method ul{margin:0; padding-left:18px} .method li{margin-bottom:5px}
+  .foot{margin-top:28px; font:12px ui-monospace,Menlo,monospace; color:var(--muted);
+    display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; align-items:center}
+  .tbtn{background:none; border:1px solid var(--hair); color:var(--ink-2); cursor:pointer;
+    font:12px ui-monospace,Menlo,monospace; padding:6px 12px; border-radius:4px}
+  .tbtn:hover{border-color:var(--bronze); color:var(--ink)}
+  table{border-collapse:collapse; width:100%; font:12px ui-monospace,Menlo,monospace; margin-top:12px}
+  th,td{text-align:right; padding:6px 9px; border-bottom:1px solid var(--hair-2)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-size:10.5px}
+  .hidden{display:none}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <p class="eyebrow" id="eyebrow">Squad Campaign Report</p>
+  <h1 class="serif" id="title"></h1>
+  <p class="sub" id="sub"></p>
+
+  <div class="board" id="board"></div>
+
+  <div class="sec">
+    <h2 class="sec-h serif">The clock we keep losing</h2>
+    <p class="sec-d">Castle Age <b>arrival</b> (click + research) per player per game. The green line is the shared benchmark to hit next session: everyone in Castle by 22:00. Lower is better.</p>
+    <div class="card chartbox">
+      <div id="trend"></div>
+      <div class="legend">
+        <span><i style="background:var(--a0)"></i>studiousmonkey1</span>
+        <span><i style="background:var(--a1)"></i>rickyflows</span>
+        <span><i style="background:var(--a2)"></i>Olive</span>
+        <span><i style="background:var(--good);opacity:.5"></i>target · 22:00</span>
+      </div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </div>
+
+  <div class="sec">
+    <h2 class="sec-h serif">The economy behind it</h2>
+    <p class="sec-d">Villagers trained per game (bars) and trade carts (the team's gold engine — or lack of one). Trained ≠ alive: late bursts often replace losses.</p>
+    <div class="card chartbox"><div id="ecochart"></div>
+      <div class="legend"><span><i style="background:var(--a0)"></i>studious</span><span><i style="background:var(--a1)"></i>ricky</span><span><i style="background:var(--a2)"></i>Olive</span><span style="color:var(--muted)">◆ = trade carts that game</span></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2 class="sec-h serif">Where we fought</h2>
+    <p class="sec-d">Every attack order each of us issued across these games, classified by map side. Green = taking the fight to them; red = defending our own ground. A day spent in the red is a day spent reacting.</p>
+    <div class="card agg" id="agg"></div>
+    <div class="totals card" style="padding:14px 18px" id="daytotals"></div>
+  </div>
+
+  <div class="sec">
+    <h2 class="sec-h serif">Orders for next Saturday</h2>
+    <p class="sec-d">One card each. Evidence from every game in the session; the fixes are specific and few.</p>
+    <div class="advice" id="advice"></div>
+  </div>
+
+  <div class="sec">
+    <h2 class="sec-h serif">The battles</h2>
+    <p class="sec-d">Pick a game: tempo, the animated battlefield, and the combat log. Attrition bars count gross objects lost (units, buildings, farms) in 40-second windows — production inside a window offsets losses.</p>
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="gpanel" id="gpanel"></div>
+  </div>
+
+  <div class="method">
+    <h4>Methodology (and its honest limits)</h4>
+    <ul>
+      <li><b>Age times</b> are shown as click → arrival (click + research time). Arrival can be later still if villagers were queued ahead of the research.</li>
+      <li><b>Unit counts are cumulative production</b> (trained over the game), not army size — a big number can be a standing force or waves being replaced. The recorder also duplicates ~2–6% of the recording player's own commands; all counts here are de-duplicated.</li>
+      <li><b>"Fights" are attrition windows</b> from object-count drops: they include buildings and expiring farms, and long windows are campaigns, not single battles. Windows ending at the game's end (surrender wipe) are shown but excluded from records.</li>
+      <li>Cancelled-then-reclicked research is collapsed to the final click. Cost/upgrade facts checked against current game data (July 2026 patch).</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Parsed with mgz + the save_version-68 patch · generated by reports/make_campaign.py</span>
+    <button class="tbtn" id="toggle" aria-expanded="false">Show data table</button>
+  </div>
+  <div id="dtable" class="hidden"></div>
+</div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const RAW=JSON.parse(document.getElementById('data').textContent);
+const G=RAW.games;
+const E=RAW.editorial||{};
+const BENCH=(E.castle_target_min??22);
+const SMITHSET=new Set(['Fletching','Forging','Padded Archer Armor','Scale Mail Armor','Scale Barding Armor']);
+const fmt=s=>s==null?'—':Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
+const ACOL=['--a0','--a1','--a2'];
+let _cv={}; const cssvar=n=>_cv[n]||(_cv[n]=getComputedStyle(document.documentElement).getPropertyValue(n).trim());
+const pcol=p=>p.ally>=0?cssvar(ACOL[p.ally]):cssvar('--enemy');
+const ORDER=E.order||[...G[0].roster.filter(p=>p.ally>=0)].sort((a,b)=>a.ally-b.ally).map(p=>p.name);
+const ally=(g,nm)=>g.roster.find(r=>r.name===nm);
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+function foesOf(g){return g.roster.filter(p=>p.ally<0).map(p=>esc(p.name.replace(' AI',''))).join(' + ');}
+function autoED(g,i){
+  const rec=g.record;
+  const rows=ORDER.map(nm=>ally(g,nm)).filter(Boolean);
+  const won=g.roster.some(p=>p.ally>=0&&p.winner);
+  const moments=[];
+  const firstC=rows.filter(r=>r.ages.Castle!=null).sort((a,b)=>a.ages.Castle-b.ages.Castle)[0];
+  if(firstC) moments.push([fmt(firstC.ages.Castle),`<b>${esc(firstC.name)}</b> clicks Castle first (arrives ${fmt(firstC.entered.Castle)}).`]);
+  const imp=rows.filter(r=>r.ages.Imperial!=null).sort((a,b)=>a.ages.Imperial-b.ages.Imperial)[0];
+  if(imp) moments.push([fmt(imp.ages.Imperial),`<b>${esc(imp.name)}</b> clicks Imperial.`]);
+  const real=g.fights.filter(f=>!f.endgame);
+  const big=[...real].sort((a,b)=>(b.us+b.them)-(a.us+a.them))[0];
+  if(big) moments.push([fmt(big.peak),`Biggest engagement: <b>−${big.us} us / −${big.them} them</b> (${big.side}) — ${big.outcome}.`]);
+  const w1=real.find(f=>f.outcome==='won');
+  if(w1&&w1!==big) moments.push([fmt(w1.peak),`First won window: −${w1.us} / −${w1.them} (${w1.side}).`]);
+  return {title:`Game ${i+1}`, foes:foesOf(g),
+    sum:`${won?'<b>Victory</b>':'<b>Defeat</b>'} in <b>${fmt(g.dur)}</b>. Field record ${rec.w}W·${rec.l}L·${rec.t}T (excl. endgame); gross attrition ${rec.dealt.toLocaleString()} dealt / ${rec.taken.toLocaleString()} taken.`,
+    moments};
+}
+const ED={}; G.forEach((g,i)=>{ED[g.id]=Object.assign(autoED(g,i),(E.games||{})[g.id]||{});});
+
+function autoAdvice(){
+  return ORDER.map((nm,ai)=>{
+    const rows=G.map(g=>ally(g,nm)).filter(Boolean);
+    const list=f=>rows.map(f).join(' · ');
+    const castles=rows.map(r=>r.entered.Castle).filter(x=>x!=null);
+    const avgC=castles.length?castles.reduce((a,b)=>a+b,0)/castles.length/60:null;
+    const carts=rows.reduce((s2,r)=>s2+r.tradecarts,0);
+    const smiths=rows.map(r=>{const u=r.upgrades.find(u=>SMITHSET.has(u.name));return u?u.t:null;});
+    const fixes=[];
+    if(avgC!=null&&avgC>BENCH+2) fixes.push(`<b>Age up sooner.</b> Castle arrivals averaged ~${Math.round(avgC)} min vs the ${BENCH}:00 target — click the age the moment it is affordable.`);
+    if(Math.min(...rows.map(r=>r.vills))<40&&G.some(g=>g.dur>1800)) fixes.push(`<b>Keep the TC producing.</b> Villagers per game: ${list(r=>r.vills)}. Queue villagers every pass; set a TC resource rally.`);
+    if(carts<10) fixes.push(`<b>Build a gold engine.</b> ${carts} trade carts across the session — Imperial costs 800g; aim for 15–20 carts by 30:00.`);
+    if(smiths.every(t=>t==null||t>960)) fixes.push(`<b>Blacksmith by 14:00.</b> First smith tech per game: ${smiths.map(t=>t==null?'—':fmt(t)).join(' · ')}.`);
+    if(!fixes.length) fixes.push('<b>No automatic flags this session</b> — keep doing what you are doing.');
+    const r0=rows[0]||{};
+    return {name:nm, ci:(r0.civ||'??').slice(0,2).toUpperCase(), role:r0.civ||'', ally:ai,
+      ev:`Castle clicks: <b>${list(r=>fmt(r.ages.Castle))}</b> · Imperial: ${list(r=>fmt(r.ages.Imperial))} · attack orders: ${list(r=>r.attacks)}.`,
+      n3:[['Villagers',list(r=>r.vills)],['Trade carts',list(r=>r.tradecarts)],['Key upgrades',list(r=>r.upgrades.length)]],
+      fx:fixes.slice(0,3)};
+  });
+}
+const ADVICE=E.advice||autoAdvice();
+
+// ---------- day board ----------
+document.getElementById('board').innerHTML=G.map((g,i)=>{
+  const e=ED[g.id]; const won=g.roster.some(p=>p.ally>=0&&p.winner);
+  return `<button class="gchip"${won?' style="--enemy:var(--good)"':''} data-g="${i}"><div class="n">Game ${i+1} · ${fmt(g.dur)} · ${won?'victory':'defeat'}</div>
+    <div class="t serif">${e.title}</div><div class="m">vs ${e.foes}</div></button>`;
+}).join('');
+
+// ---------- hero + tiles ----------
+(function(){
+  const wins=G.filter(g=>g.roster.some(p=>p.ally>=0&&p.winner)).length;
+  const dealt=G.reduce((a,g)=>a+g.record.dealt,0), taken=G.reduce((a,g)=>a+g.record.taken,0);
+  document.getElementById('eyebrow').textContent=E.eyebrow||`Squad Campaign Report · ${G[0].map} ×${G.length}`;
+  document.getElementById('title').innerHTML=E.title||`${G.length} games, ${wins}–${G.length-wins}.`;
+  document.getElementById('sub').innerHTML=E.sub||`Session report across ${G.length} games: age-up tempo, economy, aggression, and per-game battlefields — every number parsed from the replays.`;
+  const tiles=E.tiles||[
+    {cls:wins>G.length-wins?'green':'red',k:'Session record',v:`${wins}–${G.length-wins}`,s:'wins–losses'},
+    {cls:'',k:'Gross attrition',v:`${dealt.toLocaleString()}<small> dealt</small> · ${taken.toLocaleString()}<small> taken</small>`,s:'objects destroyed (units, buildings, farms — all causes)'},
+    {cls:'green',k:'Castle target',v:`${BENCH}:00`,s:'everyone in Castle Age by this arrival time'},
+  ];
+  document.getElementById('tiles').innerHTML=tiles.map(t=>`<div class="tile ${t.cls||''}"><div class="k">${t.k}</div><div class="v">${t.v}</div><div class="s">${t.s}</div></div>`).join('');
+})();
+
+// ---------- trend chart ----------
+(function(){
+  const W=820,H=300,M={t:24,r:150,b:34,l:46};
+  const PW=W-M.l-M.r,PH=H-M.t-M.b;
+  const X=i=>M.l+((i+0.5)/G.length)*PW;
+  const ymin=15,ymax=32;
+  const Y=min_=>M.t+((min_-ymin)/(ymax-ymin))*PH; // lower minutes at top
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Castle Age arrival per player across the three games">`;
+  for(let v=16;v<=32;v+=4){
+    s+=`<line class="gl" x1="${M.l}" y1="${Y(v)}" x2="${W-M.r}" y2="${Y(v)}"/>`;
+    s+=`<text class="axlab" x="${M.l-8}" y="${Y(v)+3}" text-anchor="end">${v}:00</text>`;
+  }
+  G.forEach((g,i)=>{s+=`<text class="axlab" x="${X(i)}" y="${H-12}" text-anchor="middle">Game ${i+1}</text>`;});
+  s+=`<line x1="${M.l}" y1="${Y(BENCH)}" x2="${W-M.r}" y2="${Y(BENCH)}" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>`;
+  s+=`<text class="mk-lab" x="${W-M.r-4}" y="${Y(BENCH)-6}" text-anchor="end" fill="var(--good)">target ${BENCH}:00</text>`;
+  const series=ORDER.map((nm,ai)=>({nm,ai,c:`var(${ACOL[ai]})`,
+    pts:G.map((g,i)=>{const r=ally(g,nm); const ent=r.entered.Castle;
+      return ent!=null?[X(i),Y(ent/60),ent]:null;})}));
+  // lines + points
+  series.forEach(sr=>{
+    const line=sr.pts.filter(Boolean).map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+    s+=`<path d="${line}" fill="none" stroke="${sr.c}" stroke-width="2.5" opacity=".85"/>`;
+    sr.pts.forEach(p=>{ if(p) s+=`<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="${sr.c}" stroke="var(--panel)" stroke-width="2"/>`;});
+  });
+  // value labels with per-column collision handling: colliding labels flip below the point
+  for(let gi=0;gi<G.length;gi++){
+    const col=series.map(sr=>sr.pts[gi]?{sr,y:sr.pts[gi][1],p:sr.pts[gi]}:null).filter(Boolean)
+      .sort((a,b)=>a.y-b.y);
+    col.forEach((e,idx)=>{
+      const below=idx>0 && (e.y-col[idx-1].y)<18;
+      const ly=below?e.y+20:e.y-10;
+      s+=`<text class="mk-lab" x="${e.p[0]}" y="${ly.toFixed(1)}" text-anchor="middle" fill="${e.sr.c}">${fmt(e.p[2])}</text>`;
+    });
+  }
+  // right-edge name labels, nudged apart if crowded
+  const ends=series.map(sr=>{const lp=sr.pts.filter(Boolean).slice(-1)[0];
+    return lp?{sr,y:lp[1]}:null;}).filter(Boolean).sort((a,b)=>a.y-b.y);
+  for(let i2=1;i2<ends.length;i2++){
+    if(ends[i2].y-ends[i2-1].y<16) ends[i2].y=ends[i2-1].y+16;
+  }
+  ends.forEach(e=>{s+=`<text x="${W-M.r+10}" y="${(e.y+4).toFixed(1)}" fill="${e.sr.c}" font-size="12.5" font-weight="600" class="mono">${e.sr.nm}</text>`;});
+  s+=`</svg>`;
+  document.getElementById('trend').innerHTML=s;
+})();
+
+// ---------- eco chart ----------
+(function(){
+  const W=820,H=250,M={t:22,r:16,b:30,l:40};
+  const PW=W-M.l-M.r,PH=H-M.t-M.b;
+  const ymax=Math.ceil(Math.max(60,...G.flatMap(g=>ORDER.map(nm=>(ally(g,nm)||{vills:0}).vills)))/40)*40;
+  const Y=v=>M.t+PH*(1-v/ymax);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Villagers trained per player per game">`;
+  for(let v=0;v<=ymax;v+=40){
+    s+=`<line class="gl" x1="${M.l}" y1="${Y(v)}" x2="${W-M.r}" y2="${Y(v)}"/>`;
+    s+=`<text class="axlab" x="${M.l-8}" y="${Y(v)+3}" text-anchor="end">${v}</text>`;
+  }
+  const gw=PW/G.length, bw=Math.min(34,Math.max(14,(gw-46)/3)), gap=8;
+  G.forEach((g,gi)=>{
+    const cx=M.l+gw*gi+gw/2;
+    s+=`<text class="axlab" x="${cx}" y="${H-8}" text-anchor="middle">Game ${gi+1}</text>`;
+    ORDER.forEach((nm,ai)=>{
+      const r=ally(g,nm); const x=cx+(ai-1)*(bw+gap)-bw/2;
+      const h=PH*r.vills/ymax;
+      s+=`<rect x="${x.toFixed(1)}" y="${(Y(0)-h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="var(${ACOL[ai]})" opacity=".9"/>`;
+      s+=`<text class="mk-lab" x="${(x+bw/2).toFixed(1)}" y="${(Y(0)-h-6).toFixed(1)}" text-anchor="middle" fill="var(${ACOL[ai]})">${r.vills}</text>`;
+      if(r.tradecarts>2) s+=`<text x="${(x+bw/2).toFixed(1)}" y="${(Y(0)-h-20).toFixed(1)}" text-anchor="middle" font-size="10.5" class="mono" fill="var(--bronze)">◆${r.tradecarts}</text>`;
+    });
+  });
+  s+=`</svg>`;
+  document.getElementById('ecochart').innerHTML=s;
+})();
+
+// ---------- aggression profile + day totals ----------
+(function(){
+  const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const acc={}; ORDER.forEach(nm=>acc[nm]={own:0,mid:0,their:0});
+  G.forEach(g=>{
+    const aS=g.roster.filter(p=>p.ally>=0&&p.start).map(p=>p.start);
+    const fS=g.roster.filter(p=>p.ally<0&&p.start).map(p=>p.start);
+    const aC=[0,1].map(i=>aS.reduce((s,p)=>s+p[i],0)/aS.length);
+    const fC=[0,1].map(i=>fS.reduce((s,p)=>s+p[i],0)/fS.length);
+    g.roster.forEach(r=>{
+      if(r.ally<0) return;
+      const mv=g.moves[r.number]||[];
+      for(const [x,y,t,at] of mv){
+        if(!at) continue;
+        const da=dist([x,y],aC), df=dist([x,y],fC);
+        if(da<df*0.75) acc[r.name].own++;
+        else if(df<da*0.75) acc[r.name].their++;
+        else acc[r.name].mid++;
+      }
+    });
+  });
+  document.getElementById('agg').innerHTML=ORDER.map((nm,ai)=>{
+    const a=acc[nm], tot=a.own+a.mid+a.their||1;
+    const pc=k=>Math.round(a[k]/tot*100);
+    return `<div class="arow">
+      <span class="nm" style="color:var(${ACOL[ai]})">${nm}</span>
+      <div class="bar" role="img" aria-label="${nm}: ${pc('own')}% own side, ${pc('mid')}% midmap, ${pc('their')}% their side">
+        <span class="seg" style="width:${pc('own')}%;background:var(--bad);opacity:.75"></span>
+        <span class="seg" style="width:${pc('mid')}%;background:var(--warn);opacity:.6"></span>
+        <span class="seg" style="width:${pc('their')}%;background:var(--good);opacity:.8"></span>
+      </div>
+      <span class="pct">${pc('own')}% own · ${pc('mid')}% mid · ${pc('their')}% theirs</span>
+    </div>`;
+  }).join('')+`<div class="clegend"><span><i style="background:var(--bad);opacity:.75"></i>own side (defending)</span><span><i style="background:var(--warn);opacity:.6"></i>midmap</span><span><i style="background:var(--good);opacity:.8"></i>their side (attacking)</span></div>`;
+  // day totals
+  let h=`<table><thead><tr><th>Day totals</th><th>Units trained</th><th>Villagers</th><th>Trade carts</th><th>Key upgrades</th><th>Attack orders</th><th>Buildings placed</th></tr></thead><tbody>`;
+  ORDER.forEach((nm,ai)=>{
+    const rows=G.map(g=>ally(g,nm));
+    const sum=k=>rows.reduce((s,r)=>s+(k==='upg'?r.upgrades.length:r[k]),0);
+    h+=`<tr><td style="color:var(${ACOL[ai]});font-weight:600">${nm}</td><td>${sum('total')}</td><td>${sum('vills')}</td><td>${sum('tradecarts')}</td><td>${sum('upg')}</td><td>${sum('attacks')}</td><td>${sum('nbuilds')}</td></tr>`;
+  });
+  h+=`</tbody></table>`;
+  document.getElementById('daytotals').innerHTML=h;
+})();
+
+// ---------- advice ----------
+document.getElementById('advice').innerHTML=ADVICE.map(a=>{
+  const c=`var(${ACOL[a.ally]})`;
+  return `<div class="adv" style="--pc:${c}">
+    <div class="top"><div class="badge">${a.ci}</div>
+      <div><h3 class="serif">${a.name}</h3><div class="role">${a.role}</div></div></div>
+    <div class="body">
+      <div class="ev">${a.ev}<div class="row3">${a.n3.map(([k,v])=>`<div>${k}<b>${v}</b></div>`).join('')}</div></div>
+      <div class="fx"><div class="fh">Fix list</div><ol>${a.fx.map(x=>`<li>${x}</li>`).join('')}</ol></div>
+    </div></div>`;
+}).join('');
+
+// ---------- game tabs ----------
+const tabsEl=document.getElementById('tabs'), panel=document.getElementById('gpanel');
+tabsEl.innerHTML=G.map((g,i)=>`<button class="tab" role="tab" data-g="${i}">Game ${i+1} · ${ED[g.id].title}</button>`).join('');
+let mapState=null;
+function selectGame(i){
+  tabsEl.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('on',j===i));
+  if(mapState){ mapState.dead=true; }
+  renderGame(i);
+}
+tabsEl.addEventListener('click',e=>{const b=e.target.closest('.tab'); if(b) selectGame(+b.dataset.g);});
+document.getElementById('board').addEventListener('click',e=>{
+  const b=e.target.closest('.gchip'); if(!b) return;
+  selectGame(+b.dataset.g);
+  document.getElementById('tabs').scrollIntoView({behavior:'smooth',block:'center'});
+});
+
+function tempoStrip(g){
+  const rows=ORDER.map(nm=>ally(g,nm));
+  const W=820, laneH=46, top=28, bot=24, M={l:118,r:20};
+  const H=top+rows.length*laneH+bot;
+  const X=t=>M.l+(t/g.dur)*(W-M.l-M.r);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Age timeline for ${esc(ED[g.id].title)}">`;
+  for(let t=0;t<=g.dur;t+=600) s+=`<text class="axlab" x="${X(t)}" y="${H-6}" text-anchor="middle">${fmt(t)}</text>`;
+  rows.forEach((r,i)=>{
+    const cy=top+i*laneH+laneH/2, c=`var(${ACOL[i]})`;
+    s+=`<text x="${M.l-12}" y="${cy+4}" text-anchor="end" class="mono" font-size="12.5" font-weight="600" fill="${c}">${esc(r.name)}</text>`;
+    s+=`<line x1="${M.l}" y1="${cy}" x2="${W-M.r}" y2="${cy}" stroke="var(--hair)" stroke-width="2"/>`;
+    [['F','Feudal'],['C','Castle'],['I','Imperial']].forEach(([lab,k])=>{
+      const t=r.ages[k], e=r.entered[k];
+      if(t==null) return;
+      s+=`<line x1="${X(t)}" y1="${cy}" x2="${X(Math.min(e,g.dur))}" y2="${cy}" stroke="${c}" stroke-width="4" opacity=".45"/>`;
+      s+=`<circle cx="${X(t)}" cy="${cy}" r="5.5" fill="${c}" stroke="var(--panel)" stroke-width="2"/>`;
+      if(e<=g.dur) s+=`<circle cx="${X(e)}" cy="${cy}" r="4.5" fill="var(--panel)" stroke="${c}" stroke-width="2"/>`;
+      s+=`<text class="mk-lab" x="${X(t)}" y="${cy-11}" text-anchor="middle" fill="${c}">${lab} ${fmt(t)}→${e<=g.dur?fmt(e):'✕'}</text>`;
+    });
+  });
+  s+=`</svg>`;
+  return s;
+}
+
+function combatLog(g){
+  const W=820,H=240,M={t:20,r:16,b:22,l:16}, mid=M.t+(H-M.t-M.b)/2;
+  const PW=W-M.l-M.r, half=(H-M.t-M.b)/2-6;
+  const X=t=>M.l+(t/g.dur)*PW;
+  const cas=Math.max(...g.fights.flatMap(f=>[f.us,f.them]),1);
+  const Y=v=>Math.min(half,(v/cas)*half);
+  const OUT={won:'var(--good)',lost:'var(--bad)',trade:'var(--warn)'};
+  const bw=15;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Attrition windows for ${esc(ED[g.id].title)}">`;
+  s+=`<line x1="${M.l}" y1="${mid}" x2="${W-M.r}" y2="${mid}" stroke="var(--hair)" stroke-width="1.5"/>`;
+  for(let t=0;t<=g.dur;t+=600){ s+=`<text class="axlab" x="${X(t)}" y="${H-6}" text-anchor="middle">${fmt(t)}</text>`; }
+  g.fights.forEach((f,i)=>{
+    const x=X(f.peak), up=Y(f.them), dn=Y(f.us), oc=OUT[f.outcome];
+    const op=f.endgame?0.35:0.9;
+    s+=`<rect x="${(x-bw/2).toFixed(1)}" y="${(mid-up).toFixed(1)}" width="${bw}" height="${up.toFixed(1)}" rx="2" fill="var(--good)" opacity="${op}"/>`;
+    s+=`<rect x="${(x-bw/2).toFixed(1)}" y="${mid}" width="${bw}" height="${dn.toFixed(1)}" rx="2" fill="var(--bad)" opacity="${op}"/>`;
+    s+=`<circle cx="${x.toFixed(1)}" cy="${mid}" r="3.5" fill="${oc}" stroke="var(--panel)" stroke-width="1.5"/>`;
+    const big=Math.max(f.us,f.them)>=Math.max(20,cas*0.35)||f.outcome==='won';
+    if(f.endgame){ s+=`<text x="${x}" y="${(mid-up-7).toFixed(1)}" text-anchor="middle" class="axlab">endgame</text>`; }
+    else if(big){
+      s+=`<text x="${x}" y="${(mid-up-7).toFixed(1)}" text-anchor="middle" class="mk-lab" fill="${oc}" style="font-size:9.5px">${f.outcome.toUpperCase()}</text>`;
+      s+=`<text x="${x}" y="${(mid+dn+12).toFixed(1)}" text-anchor="middle" class="axlab">${fmt(f.peak)}</text>`;
+    }
+    s+=`<rect class="fhit" data-i="${i}" x="${(x-bw/2-4).toFixed(1)}" y="${M.t}" width="${bw+8}" height="${H-M.t-M.b}" fill="transparent" style="cursor:pointer"/>`;
+  });
+  s+=`</svg>`;
+  return s;
+}
+
+const NONMIL=new Set(['Villager','Trade Cart']);
+function forcesPanel(g){
+  let l='';
+  ORDER.forEach((nm,ai)=>{
+    const r=ally(g,nm);
+    const mil=Object.entries(r.prod).filter(([u])=>!NONMIL.has(u)).slice(0,4);
+    const mx=Math.max(...mil.map(([,n])=>n),1);
+    l+=`<div class="pname" style="color:var(${ACOL[ai]})">${esc(nm)}</div>`;
+    l+=mil.map(([u,n])=>`<div class="prow"><span class="nm">${esc(u)}</span><span class="bar" style="width:${Math.max(5,n/mx*100)}%;background:var(${ACOL[ai]});opacity:.85"></span><span class="ct">${n}</span></div>`).join('')||'<div class="prow"><span class="nm" style="color:var(--muted)">—</span></div>';
+  });
+  let fr='';
+  g.roster.filter(p=>p.ally<0).forEach(p=>{
+    const mil=Object.entries(p.prod).filter(([u])=>!NONMIL.has(u)).slice(0,5);
+    fr+=`<div class="foe"><h5>${esc(p.name)} · ${esc(p.civ)}</h5>${mil.map(([u,n])=>`<div class="u"><span>${esc(u)}</span><span>${n}</span></div>`).join('')}</div>`;
+  });
+  return `<div class="card forces">
+    <div class="fl"><div class="fh2">Forces trained (cumulative — waves &amp; replacements included)</div><div class="comp">${l}</div></div>
+    <div class="fr"><div class="fh2">What beat us</div>${fr}</div></div>`;
+}
+const SMITH=new Set(['Fletching','Forging','Padded Archer Armor','Scale Mail Armor','Scale Barding Armor']);
+function pulsePanel(g){
+  const nb=Math.max(...ORDER.map(nm=>ally(g,nm).vilbuckets.length));
+  let lanes='';
+  ORDER.forEach((nm,ai)=>{
+    const r=ally(g,nm); const mx=Math.max(...r.vilbuckets,1);
+    const bars=r.vilbuckets.map(v=>v===0
+      ?`<span class="b zero" title="0 villagers this 10min"></span>`
+      :`<span class="b" style="height:${Math.max(6,v/mx*100)}%;background:var(${ACOL[ai]});opacity:.85" title="${v} villagers"></span>`).join('');
+    lanes+=`<div class="lane"><span class="nm" style="color:var(${ACOL[ai]})">${esc(nm)}</span><div class="bars">${bars}</div><span class="tot">${r.vills}</span></div>`;
+  });
+  // tech timeline
+  const W=820,H=118,M={l:104,r:40,t:14,b:20},laneH=28;
+  const X=t=>M.l+(t/g.dur)*(W-M.l-M.r);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Key upgrade timing per player">`;
+  for(let t=0;t<=g.dur;t+=600) s+=`<text class="axlab" x="${X(t)}" y="${H-4}" text-anchor="middle">${fmt(t)}</text>`;
+  ORDER.forEach((nm,ai)=>{
+    const r=ally(g,nm); const cy=M.t+ai*laneH+laneH/2; const c=`var(${ACOL[ai]})`;
+    s+=`<line x1="${M.l}" y1="${cy}" x2="${W-M.r}" y2="${cy}" stroke="var(--hair)" stroke-width="1.5"/>`;
+    s+=`<text x="${M.l-10}" y="${cy+4}" text-anchor="end" class="mono" font-size="11.5" font-weight="600" fill="${c}">${esc(nm.slice(0,12))}</text>`;
+    let firstSmith=null;
+    r.upgrades.forEach(u=>{
+      const isS=SMITH.has(u.name);
+      if(isS&&firstSmith==null) firstSmith=u.t;
+      s+=`<circle cx="${X(u.t).toFixed(1)}" cy="${cy}" r="${isS?4.5:3}" fill="${isS?'var(--panel)':c}" stroke="${c}" stroke-width="${isS?2:0}"><title>${esc(u.name)} — ${fmt(u.t)}</title></circle>`;
+    });
+    if(firstSmith!=null) s+=`<text class="mk-lab" x="${X(firstSmith).toFixed(1)}" y="${cy-9}" text-anchor="middle" fill="${c}">smith ${fmt(firstSmith)}</text>`;
+    s+=`<text x="${W-M.r+8}" y="${cy+4}" class="axlab">${r.upgrades.length}</text>`;
+  });
+  s+=`</svg>`;
+  return `<div class="card pulse">
+    <div class="fh2">Villager pulse — trained per 10 min (red stub = an idle stretch)</div>${lanes}
+    <div class="fh2" style="margin-top:14px">Key upgrades over time (○ = blacksmith techs; count at right)</div>${s}</div>`;
+}
+function fightTable(g){
+  let rows=g.fights.map(f=>`<tr${f.endgame?' class="eg"':''}><td>${fmt(f.start)}–${fmt(f.end)}</td><td>${f.side}</td><td>−${f.us}</td><td>−${f.them}</td><td class="${f.outcome}">${f.endgame?'endgame wipe':f.outcome}</td></tr>`).join('');
+  return `<div class="ftable"><table><thead><tr><th>Window</th><th>Where</th><th>Our losses</th><th>Their losses</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function renderGame(i){
+  const g=G[i], e=ED[g.id];
+  const rec=g.record;
+  panel.innerHTML=`
+   <div class="gp-head"><h3 class="serif">${e.title}</h3>
+     <span class="meta">${g.map} · ${fmt(g.dur)} · vs ${e.foes}</span></div>
+   <p class="gp-sum">${e.sum}</p>
+   <div class="card strip">${tempoStrip(g)}</div>
+   ${forcesPanel(g)}
+   ${pulsePanel(g)}
+   <div class="card map-wrap">
+     <div class="mapgrid">
+       <canvas id="mapcv" aria-label="Animated battlefield map"></canvas>
+       <div><div class="maplg" id="maplg"></div></div>
+     </div>
+     <div class="controls">
+       <button class="play" id="play" aria-label="Play or pause">▶</button>
+       <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" aria-label="Game time">
+       <span class="clock mono" id="clock">0:00</span>
+       <button class="heat" id="heatbtn" aria-pressed="false">Engagement heatmap</button>
+     </div>
+   </div>
+   <div class="card clog" style="position:relative">
+     <div class="rec">
+       <span class="pill"><b>${rec.w}</b>W · <b>${rec.l}</b>L · <b>${rec.t}</b>T <span style="color:var(--muted)">(field, excl. endgame)</span></span>
+       <span class="pill win">▲ ${rec.dealt.toLocaleString()} dealt</span>
+       <span class="pill loss">▼ ${rec.taken.toLocaleString()} taken</span>
+     </div>
+     <div id="clogsvg">${combatLog(g)}</div>
+     <div class="clegend"><span><i style="background:var(--good)"></i>enemy losses</span><span><i style="background:var(--bad)"></i>our losses</span><span style="color:var(--muted)">faded = surrender/endgame wipe (not counted)</span></div>
+     ${fightTable(g)}
+     <div class="ftip" id="ftip"></div>
+   </div>
+   <ul class="moments">${e.moments.map(([t,txt])=>`<li><span class="tm">${t}</span><span>${txt}</span></li>`).join('')}</ul>`;
+  wireMap(g); wireLog(g);
+}
+
+function wireLog(g){
+  const tip=document.getElementById('ftip'), host=document.getElementById('clogsvg');
+  const svgEl=host.querySelector('svg'); const card=host.closest('.clog');
+  host.querySelectorAll('.fhit').forEach(r=>{
+    r.addEventListener('mouseenter',ev=>{
+      const f=g.fights[+ev.target.dataset.i];
+      const rect=svgEl.getBoundingClientRect(), cb=card.getBoundingClientRect();
+      const relx=(f.peak/g.dur);
+      tip.style.left=(rect.left-cb.left+16+relx*(rect.width-32))+'px';
+      tip.style.top=(rect.top-cb.top+rect.height*0.42)+'px'; tip.style.opacity='1';
+      tip.innerHTML=`<b>${fmt(f.start)}–${fmt(f.end)}</b> · ${f.side}${f.endgame?' · endgame':''}<br>enemy <b class="g">−${f.them}</b> · us <b class="r">−${f.us}</b> · ${f.outcome.toUpperCase()}`;
+    });
+    r.addEventListener('mouseleave',()=>tip.style.opacity='0');
+  });
+}
+
+function wireMap(g){
+  const cv=document.getElementById('mapcv'), ctx=cv.getContext('2d');
+  const st={dead:false,T:0,playing:false,heat:false};
+  mapState=st;
+  const DIM=g.dim, DUR=g.dur, PAD=14; let SZ=0;
+  const px=(x,y)=>{const s=SZ-PAD*2; return [PAD+(x/DIM)*s, PAD+(y/DIM)*s];};
+  const scrub=document.getElementById('scrub'), clock=document.getElementById('clock'),
+        playBtn=document.getElementById('play'), heatBtn=document.getElementById('heatbtn');
+  document.getElementById('maplg').innerHTML=g.roster.map(p=>
+    `<div class="r ${p.ally<0?'en':''}"><i style="background:${pcol(p)}"></i>${esc(p.name)}${p.winner?' ✓':''}</div>`).join('');
+  function frame(){
+    ctx.clearRect(0,0,SZ,SZ);
+    ctx.fillStyle=cssvar('--sunken'); ctx.fillRect(0,0,SZ,SZ);
+    ctx.strokeStyle=cssvar('--grid');
+    for(let q=0;q<=4;q++){const v=PAD+(q/4)*(SZ-PAD*2);
+      ctx.beginPath(); ctx.moveTo(v,PAD); ctx.lineTo(v,SZ-PAD); ctx.moveTo(PAD,v); ctx.lineTo(SZ-PAD,v); ctx.stroke();}
+    if(st.heat){
+      ctx.globalCompositeOperation='lighter';
+      for(const p of g.roster){
+        const mv=g.moves[p.number]||[]; const col=p.ally<0?'229,100,106':'201,138,43';
+        for(const [x,y,t,a] of mv){ if(!a) continue; const [cx,cy]=px(x,y);
+          const gr=ctx.createRadialGradient(cx,cy,0,cx,cy,18);
+          gr.addColorStop(0,`rgba(${col},.2)`); gr.addColorStop(1,`rgba(${col},0)`);
+          ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(cx,cy,18,0,7); ctx.fill(); }
+      }
+      ctx.globalCompositeOperation='source-over';
+    } else {
+      for(const p of g.roster){
+        const b=g.builds[p.number]||[]; ctx.fillStyle=pcol(p);
+        for(const [x,y,t] of b){ if(t>st.T) continue; const [cx,cy]=px(x,y);
+          ctx.globalAlpha=p.ally<0?.18:.28; ctx.fillRect(cx-1.5,cy-1.5,3,3);}
+      }
+      ctx.globalAlpha=1;
+      const WIN=110;
+      for(const p of g.roster){
+        const mv=g.moves[p.number]||[]; const c=pcol(p);
+        for(const [x,y,t,a] of mv){ if(t>st.T||t<st.T-WIN) continue;
+          const [cx,cy]=px(x,y); ctx.globalAlpha=(1-(st.T-t)/WIN)*(p.ally<0?.5:.85);
+          if(a){ctx.strokeStyle=c; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(cx,cy,4.5,0,7); ctx.stroke();}
+          else {ctx.fillStyle=c; ctx.beginPath(); ctx.arc(cx,cy,2.2,0,7); ctx.fill();}
+        }
+      }
+      ctx.globalAlpha=1;
+    }
+    for(const p of g.roster){ if(!p.start) continue;
+      const [sx,sy]=px(p.start[0],p.start[1]);
+      ctx.fillStyle=cssvar('--panel'); ctx.strokeStyle=pcol(p); ctx.lineWidth=2;
+      ctx.beginPath(); ctx.rect(sx-5,sy-5,10,10); ctx.fill(); ctx.stroke();
+      if(!st.heat){
+        const mv=g.moves[p.number]||[]; let head=null;
+        for(const q of mv){ if(q[2]<=st.T) head=q; else break; }
+        if(head){ const [hx,hy]=px(head[0],head[1]);
+          ctx.fillStyle=pcol(p); ctx.strokeStyle=cssvar('--panel'); ctx.lineWidth=2;
+          ctx.beginPath(); ctx.arc(hx,hy,5,0,7); ctx.fill(); ctx.stroke(); }
+      }
+    }
+  }
+  function draw(){ frame(); clock.textContent=fmt(st.T); scrub.value=String(Math.round(st.T/DUR*1000)); }
+  function resize(){ const w=cv.clientWidth||520; const dpr=Math.min(2,window.devicePixelRatio||1);
+    SZ=w; cv.width=w*dpr; cv.height=w*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); draw(); }
+  let last=null;
+  function tick(ts){ if(st.dead||!st.playing){last=null; return;}
+    if(last==null) last=ts; const dt=(ts-last)/1000; last=ts;
+    st.T+=dt*(DUR/24);
+    if(st.T>=DUR){st.T=DUR; st.playing=false; playBtn.textContent='↻';}
+    draw(); if(st.playing) requestAnimationFrame(tick); }
+  function play(){ if(st.heat){st.heat=false; heatBtn.classList.remove('on'); heatBtn.setAttribute('aria-pressed','false');}
+    if(st.T>=DUR) st.T=0; st.playing=true; playBtn.textContent='❚❚'; last=null; requestAnimationFrame(tick); }
+  playBtn.addEventListener('click',()=>{ st.playing?(st.playing=false,playBtn.textContent='▶'):play(); });
+  scrub.addEventListener('input',()=>{ st.playing=false; playBtn.textContent='▶'; st.T=+scrub.value/1000*DUR; draw(); });
+  heatBtn.addEventListener('click',()=>{ st.heat=!st.heat; heatBtn.classList.toggle('on',st.heat);
+    heatBtn.setAttribute('aria-pressed',String(st.heat)); if(st.heat){st.playing=false; playBtn.textContent='▶';} draw(); });
+  new ResizeObserver(resize).observe(cv);
+  resize();
+  if(!matchMedia('(prefers-reduced-motion:reduce)').matches) setTimeout(()=>{if(!st.dead)play();},350);
+  else { st.T=DUR; draw(); }
+}
+
+// theme refresh
+const refresh=()=>{ _cv={}; const on=[...tabsEl.querySelectorAll('.tab')].findIndex(t=>t.classList.contains('on')); if(on>=0) renderGame(on); };
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',refresh);
+new MutationObserver(refresh).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+// ---------- data table ----------
+const tbl=document.getElementById('dtable'), tg=document.getElementById('toggle');
+tg.addEventListener('click',()=>{
+  const open=tbl.classList.toggle('hidden')===false;
+  tg.textContent=open?'Hide data table':'Show data table'; tg.setAttribute('aria-expanded',String(open));
+  if(open&&!tbl.dataset.b){
+    let h='';
+    G.forEach((g,i)=>{
+      h+=`<h3 class="serif" style="margin:18px 0 0;font-size:16px">Game ${i+1} — ${ED[g.id].title}</h3>
+      <div style="overflow-x:auto"><table><thead><tr><th>Player</th><th>Civ</th><th>Feudal</th><th>Castle click→arr</th><th>Imperial</th><th>Vills</th><th>Units</th><th>Carts</th><th>Upgrades</th><th>Attack orders</th></tr></thead><tbody>`;
+      ORDER.forEach(nm=>{const r=ally(g,nm);
+        h+=`<tr><td>${esc(r.name)}</td><td>${esc(r.civ)}</td><td>${fmt(r.ages.Feudal)}</td><td>${fmt(r.ages.Castle)}→${fmt(r.entered.Castle)}</td><td>${fmt(r.ages.Imperial)}</td><td>${r.vills}</td><td>${r.total}</td><td>${r.tradecarts}</td><td>${r.upgrades.length}</td><td>${r.attacks}</td></tr>`;});
+      h+=`</tbody></table></div>`;
+    });
+    tbl.innerHTML=h; tbl.dataset.b='1';
+  }
+});
+
+selectGame(0);
+</script>
