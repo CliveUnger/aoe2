@@ -23,7 +23,7 @@ Clive's replays are DE **save_version 68.0** (build 101.103.48987/48086, `VER 9.
 2. 8 trailing bytes at the end of the `de` header block (before the `ai` section).
 Patched in **both** parser paths — `mgz/header/de.py` (construct) and `mgz/fast/header.py`
 (fast; this is the one `parse_match`/`ModelSummary` actually use) — gated on `save_version >= 67.5`.
-The fix is **committed** on the `support-save-version-68` branch (commit `b5930a2` "Add support
+The fix is **committed** on the `support-save-version-68` branch (commit `c8e02cb` "Add support
 for DE save_version 68") and **pushed to Clive's fork**: remote `clive` →
 `git@github.com:CliveUnger/aoc-mgz.git` (branch tracks `clive/support-save-version-68`). `origin`
 still points at upstream happyleavesaoc/aoc-mgz. The **PR is not yet opened** (Clive deferred it,
