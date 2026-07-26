@@ -238,15 +238,10 @@
 
   <div class="sec">
     <h2 class="sec-h serif">The clock we keep losing</h2>
-    <p class="sec-d">Castle Age <b>arrival</b> (click + research) per player per game. The green line is the shared benchmark to hit next session: everyone in Castle by 22:00. Lower is better.</p>
+    <p class="sec-d" id="trendDesc">Castle Age <b>arrival</b> (click + research) per player per game. The green line is the shared benchmark to hit next session. Lower is better.</p>
     <div class="card chartbox">
       <div id="trend"></div>
-      <div class="legend">
-        <span><i style="background:var(--a0)"></i>studiousmonkey1</span>
-        <span><i style="background:var(--a1)"></i>rickyflows</span>
-        <span><i style="background:var(--a2)"></i>Olive</span>
-        <span><i style="background:var(--good);opacity:.5"></i>target · 22:00</span>
-      </div>
+      <div class="legend" id="trendLegend"></div>
     </div>
     <div class="tiles" id="tiles"></div>
   </div>
@@ -255,13 +250,13 @@
     <h2 class="sec-h serif">The economy behind it</h2>
     <p class="sec-d">Villagers trained per game (bars) and trade carts (the team's gold engine — or lack of one). Trained ≠ alive: late bursts often replace losses.</p>
     <div class="card chartbox"><div id="ecochart"></div>
-      <div class="legend"><span><i style="background:var(--a0)"></i>studious</span><span><i style="background:var(--a1)"></i>ricky</span><span><i style="background:var(--a2)"></i>Olive</span><span style="color:var(--muted)">◆ = trade carts that game</span></div>
+      <div class="legend" id="ecoLegend"></div>
     </div>
   </div>
 
   <div class="sec">
     <h2 class="sec-h serif">Where we fought</h2>
-    <p class="sec-d">Every attack order each of us issued across these games, classified by map side. Green = taking the fight to them; red = defending our own ground. A day spent in the red is a day spent reacting.</p>
+    <p class="sec-d">Every targeted order each of us issued across these games (any right-click on an object — attacks, but also villager tasking and garrisons), classified by map side. Green = activity on their half; red = activity on our own ground, which mixes defending with ordinary eco clicks. A day spent deep in the red is still a day spent reacting.</p>
     <div class="card agg" id="agg"></div>
     <div class="totals card" style="padding:14px 18px" id="daytotals"></div>
   </div>
@@ -291,7 +286,8 @@
       <li><b>Age times</b> are shown as click → arrival (click + research time). Arrival can be later still if villagers were queued ahead of the research.</li>
       <li><b>Unit counts are cumulative production</b> (trained over the game), not army size — a big number can be a standing force or waves being replaced. The recorder also duplicates ~2–6% of the recording player's own commands; all counts here are de-duplicated.</li>
       <li><b>"Fights" are attrition windows</b> from object-count drops: they include buildings and expiring farms, and long windows are campaigns, not single battles. Windows ending at the game's end (surrender wipe) are shown but excluded from records.</li>
-      <li>Cancelled-then-reclicked research is collapsed to the final click. Cost/upgrade facts checked against current game data (July 2026 patch).</li>
+      <li>Cancelled-then-reclicked research is collapsed to the final click — ages included. Cost/upgrade facts checked against current game data (July 2026 patch).</li>
+      <li><b>"Targeted orders" are every object right-click</b>, not just attacks: villager resource-tasking and garrisons land in the same count, so the "own side" share overstates pure defending.</li>
     </ul>
   </div>
 
@@ -309,10 +305,11 @@ const G=RAW.games;
 const E=RAW.editorial||{};
 const BENCH=(E.castle_target_min??22);
 const SMITHSET=new Set(['Fletching','Forging','Padded Archer Armor','Scale Mail Armor','Scale Barding Armor']);
-const fmt=s=>s==null?'—':Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
+const fmt=s=>{if(s==null)return '—';s=Math.round(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
 const ACOL=['--a0','--a1','--a2'];
+const AC=ai=>ACOL[((ai%ACOL.length)+ACOL.length)%ACOL.length]; // >3 allies cycle colors rather than render black
 let _cv={}; const cssvar=n=>_cv[n]||(_cv[n]=getComputedStyle(document.documentElement).getPropertyValue(n).trim());
-const pcol=p=>p.ally>=0?cssvar(ACOL[p.ally]):cssvar('--enemy');
+const pcol=p=>p.ally>=0?cssvar(AC(p.ally)):cssvar('--enemy');
 const ORDER=E.order||[...G[0].roster.filter(p=>p.ally>=0)].sort((a,b)=>a.ally-b.ally).map(p=>p.name);
 const ally=(g,nm)=>g.roster.find(r=>r.name===nm);
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
@@ -354,7 +351,7 @@ function autoAdvice(){
     if(!fixes.length) fixes.push('<b>No automatic flags this session</b> — keep doing what you are doing.');
     const r0=rows[0]||{};
     return {name:nm, ci:(r0.civ||'??').slice(0,2).toUpperCase(), role:r0.civ||'', ally:ai,
-      ev:`Castle clicks: <b>${list(r=>fmt(r.ages.Castle))}</b> · Imperial: ${list(r=>fmt(r.ages.Imperial))} · attack orders: ${list(r=>r.attacks)}.`,
+      ev:`Castle clicks: <b>${list(r=>fmt(r.ages.Castle))}</b> · Imperial: ${list(r=>fmt(r.ages.Imperial))} · targeted orders: ${list(r=>r.attacks)}.`,
       n3:[['Villagers',list(r=>r.vills)],['Trade carts',list(r=>r.tradecarts)],['Key upgrades',list(r=>r.upgrades.length)]],
       fx:fixes.slice(0,3)};
   });
@@ -385,21 +382,29 @@ document.getElementById('board').innerHTML=G.map((g,i)=>{
 
 // ---------- trend chart ----------
 (function(){
+  document.getElementById('trendDesc').innerHTML=`Castle Age <b>arrival</b> (click + research) per player per game. The green line is the shared benchmark to hit next session: everyone in Castle by ${BENCH}:00. Lower is better.`;
+  document.getElementById('trendLegend').innerHTML=
+    ORDER.map((nm,ai)=>`<span><i style="background:var(${AC(ai)})"></i>${esc(nm)}</span>`).join('')+
+    `<span><i style="background:var(--good);opacity:.5"></i>target · ${BENCH}:00</span>`;
   const W=820,H=300,M={t:24,r:150,b:34,l:46};
   const PW=W-M.l-M.r,PH=H-M.t-M.b;
   const X=i=>M.l+((i+0.5)/G.length)*PW;
-  const ymin=15,ymax=32;
+  // y-domain from the data (plus the benchmark), never a fixed window —
+  // real arrivals in this collection span ~15..50+ minutes
+  const allMin=[BENCH,...G.flatMap(g=>ORDER.map(nm=>{const r=ally(g,nm);return r&&r.entered.Castle!=null?r.entered.Castle/60:null;}).filter(v=>v!=null))];
+  const ymin=Math.max(0,Math.floor(Math.min(...allMin))-2), ymax=Math.ceil(Math.max(...allMin))+2;
   const Y=min_=>M.t+((min_-ymin)/(ymax-ymin))*PH; // lower minutes at top
-  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Castle Age arrival per player across the three games">`;
-  for(let v=16;v<=32;v+=4){
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Castle Age arrival per player across ${G.length} game${G.length>1?'s':''}">`;
+  const step=Math.max(1,Math.ceil((ymax-ymin)/6));
+  for(let v=Math.ceil(ymin/step)*step;v<=ymax;v+=step){
     s+=`<line class="gl" x1="${M.l}" y1="${Y(v)}" x2="${W-M.r}" y2="${Y(v)}"/>`;
     s+=`<text class="axlab" x="${M.l-8}" y="${Y(v)+3}" text-anchor="end">${v}:00</text>`;
   }
   G.forEach((g,i)=>{s+=`<text class="axlab" x="${X(i)}" y="${H-12}" text-anchor="middle">Game ${i+1}</text>`;});
   s+=`<line x1="${M.l}" y1="${Y(BENCH)}" x2="${W-M.r}" y2="${Y(BENCH)}" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="6 4" opacity=".7"/>`;
   s+=`<text class="mk-lab" x="${W-M.r-4}" y="${Y(BENCH)-6}" text-anchor="end" fill="var(--good)">target ${BENCH}:00</text>`;
-  const series=ORDER.map((nm,ai)=>({nm,ai,c:`var(${ACOL[ai]})`,
-    pts:G.map((g,i)=>{const r=ally(g,nm); const ent=r.entered.Castle;
+  const series=ORDER.map((nm,ai)=>({nm,ai,c:`var(${AC(ai)})`,
+    pts:G.map((g,i)=>{const r=ally(g,nm); const ent=r&&r.entered.Castle;
       return ent!=null?[X(i),Y(ent/60),ent]:null;})}));
   // lines + points
   series.forEach(sr=>{
@@ -430,6 +435,9 @@ document.getElementById('board').innerHTML=G.map((g,i)=>{
 
 // ---------- eco chart ----------
 (function(){
+  document.getElementById('ecoLegend').innerHTML=
+    ORDER.map((nm,ai)=>`<span><i style="background:var(${AC(ai)})"></i>${esc(nm)}</span>`).join('')+
+    `<span style="color:var(--muted)">◆ = trade carts that game</span>`;
   const W=820,H=250,M={t:22,r:16,b:30,l:40};
   const PW=W-M.l-M.r,PH=H-M.t-M.b;
   const ymax=Math.ceil(Math.max(60,...G.flatMap(g=>ORDER.map(nm=>(ally(g,nm)||{vills:0}).vills)))/40)*40;
@@ -439,15 +447,17 @@ document.getElementById('board').innerHTML=G.map((g,i)=>{
     s+=`<line class="gl" x1="${M.l}" y1="${Y(v)}" x2="${W-M.r}" y2="${Y(v)}"/>`;
     s+=`<text class="axlab" x="${M.l-8}" y="${Y(v)+3}" text-anchor="end">${v}</text>`;
   }
-  const gw=PW/G.length, bw=Math.min(34,Math.max(14,(gw-46)/3)), gap=8;
+  const NA=Math.max(1,ORDER.length);
+  const gw=PW/G.length, bw=Math.min(34,Math.max(14,(gw-46)/NA)), gap=8;
   G.forEach((g,gi)=>{
     const cx=M.l+gw*gi+gw/2;
     s+=`<text class="axlab" x="${cx}" y="${H-8}" text-anchor="middle">Game ${gi+1}</text>`;
     ORDER.forEach((nm,ai)=>{
-      const r=ally(g,nm); const x=cx+(ai-1)*(bw+gap)-bw/2;
+      const r=ally(g,nm); if(!r) return; // ally absent from this game (mixed team sizes)
+      const x=cx+(ai-(NA-1)/2)*(bw+gap)-bw/2;
       const h=PH*r.vills/ymax;
-      s+=`<rect x="${x.toFixed(1)}" y="${(Y(0)-h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="var(${ACOL[ai]})" opacity=".9"/>`;
-      s+=`<text class="mk-lab" x="${(x+bw/2).toFixed(1)}" y="${(Y(0)-h-6).toFixed(1)}" text-anchor="middle" fill="var(${ACOL[ai]})">${r.vills}</text>`;
+      s+=`<rect x="${x.toFixed(1)}" y="${(Y(0)-h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" fill="var(${AC(ai)})" opacity=".9"/>`;
+      s+=`<text class="mk-lab" x="${(x+bw/2).toFixed(1)}" y="${(Y(0)-h-6).toFixed(1)}" text-anchor="middle" fill="var(${AC(ai)})">${r.vills}</text>`;
       if(r.tradecarts>2) s+=`<text x="${(x+bw/2).toFixed(1)}" y="${(Y(0)-h-20).toFixed(1)}" text-anchor="middle" font-size="10.5" class="mono" fill="var(--bronze)">◆${r.tradecarts}</text>`;
     });
   });
@@ -462,17 +472,18 @@ document.getElementById('board').innerHTML=G.map((g,i)=>{
   G.forEach(g=>{
     const aS=g.roster.filter(p=>p.ally>=0&&p.start).map(p=>p.start);
     const fS=g.roster.filter(p=>p.ally<0&&p.start).map(p=>p.start);
-    const aC=[0,1].map(i=>aS.reduce((s,p)=>s+p[i],0)/aS.length);
-    const fC=[0,1].map(i=>fS.reduce((s,p)=>s+p[i],0)/fS.length);
+    const aC=aS.length?[0,1].map(i=>aS.reduce((s,p)=>s+p[i],0)/aS.length):[0,0];
+    const fC=fS.length?[0,1].map(i=>fS.reduce((s,p)=>s+p[i],0)/fS.length):[g.dim,g.dim];
     g.roster.forEach(r=>{
       if(r.ally<0) return;
+      const a=acc[r.name]; if(!a) return; // name not in ORDER (roster/order mismatch)
       const mv=g.moves[r.number]||[];
       for(const [x,y,t,at] of mv){
         if(!at) continue;
         const da=dist([x,y],aC), df=dist([x,y],fC);
-        if(da<df*0.75) acc[r.name].own++;
-        else if(df<da*0.75) acc[r.name].their++;
-        else acc[r.name].mid++;
+        if(da<df*0.75) a.own++;
+        else if(df<da*0.75) a.their++;
+        else a.mid++;
       }
     });
   });
@@ -480,7 +491,7 @@ document.getElementById('board').innerHTML=G.map((g,i)=>{
     const a=acc[nm], tot=a.own+a.mid+a.their||1;
     const pc=k=>Math.round(a[k]/tot*100);
     return `<div class="arow">
-      <span class="nm" style="color:var(${ACOL[ai]})">${nm}</span>
+      <span class="nm" style="color:var(${AC(ai)})">${nm}</span>
       <div class="bar" role="img" aria-label="${nm}: ${pc('own')}% own side, ${pc('mid')}% midmap, ${pc('their')}% their side">
         <span class="seg" style="width:${pc('own')}%;background:var(--bad);opacity:.75"></span>
         <span class="seg" style="width:${pc('mid')}%;background:var(--warn);opacity:.6"></span>
@@ -490,11 +501,11 @@ document.getElementById('board').innerHTML=G.map((g,i)=>{
     </div>`;
   }).join('')+`<div class="clegend"><span><i style="background:var(--bad);opacity:.75"></i>own side (defending)</span><span><i style="background:var(--warn);opacity:.6"></i>midmap</span><span><i style="background:var(--good);opacity:.8"></i>their side (attacking)</span></div>`;
   // day totals
-  let h=`<table><thead><tr><th>Day totals</th><th>Units trained</th><th>Villagers</th><th>Trade carts</th><th>Key upgrades</th><th>Attack orders</th><th>Buildings placed</th></tr></thead><tbody>`;
+  let h=`<table><thead><tr><th>Day totals</th><th>Units trained</th><th>Villagers</th><th>Trade carts</th><th>Key upgrades</th><th>Targeted orders</th><th>Buildings placed</th></tr></thead><tbody>`;
   ORDER.forEach((nm,ai)=>{
-    const rows=G.map(g=>ally(g,nm));
+    const rows=G.map(g=>ally(g,nm)).filter(Boolean);
     const sum=k=>rows.reduce((s,r)=>s+(k==='upg'?r.upgrades.length:r[k]),0);
-    h+=`<tr><td style="color:var(${ACOL[ai]});font-weight:600">${nm}</td><td>${sum('total')}</td><td>${sum('vills')}</td><td>${sum('tradecarts')}</td><td>${sum('upg')}</td><td>${sum('attacks')}</td><td>${sum('nbuilds')}</td></tr>`;
+    h+=`<tr><td style="color:var(${AC(ai)});font-weight:600">${nm}</td><td>${sum('total')}</td><td>${sum('vills')}</td><td>${sum('tradecarts')}</td><td>${sum('upg')}</td><td>${sum('attacks')}</td><td>${sum('nbuilds')}</td></tr>`;
   });
   h+=`</tbody></table>`;
   document.getElementById('daytotals').innerHTML=h;
@@ -516,14 +527,14 @@ document.getElementById('board').innerHTML=G.map((g,i)=>{
     const table=`<div style="overflow-x:auto"><table><thead><tr><th></th>${G.map((g,i)=>`<th>G${i+1}</th>`).join('')}</tr></thead><tbody>`+
       METRICS.map(([label,f])=>`<tr><td>${label}</td>${rows.map(r=>`<td>${r?f(r):'—'}</td>`).join('')}</tr>`).join('')+`</tbody></table></div>`;
     const note=(E.bo||{})[nm];
-    return `<div class="adv" style="--pc:var(${ACOL[ai]})"><div class="top"><div class="badge">${(((rows[0]||{}).civ)||'??').slice(0,2).toUpperCase()}</div><div><h3 class="serif">${esc(nm)}</h3><div class="role">Opening fundamentals</div></div></div>
+    return `<div class="adv" style="--pc:var(${AC(ai)})"><div class="top"><div class="badge">${(((rows.find(Boolean)||{}).civ)||'??').slice(0,2).toUpperCase()}</div><div><h3 class="serif">${esc(nm)}</h3><div class="role">Opening fundamentals</div></div></div>
       <div style="padding:14px 20px">${table}${note?`<div class="note">${note}</div>`:''}</div></div>`;
   }).join('');
 })();
 
 // ---------- advice ----------
 document.getElementById('advice').innerHTML=ADVICE.map(a=>{
-  const c=`var(${ACOL[a.ally]})`;
+  const c=`var(${AC(a.ally)})`;
   return `<div class="adv" style="--pc:${c}">
     <div class="top"><div class="badge">${a.ci}</div>
       <div><h3 class="serif">${a.name}</h3><div class="role">${a.role}</div></div></div>
@@ -550,14 +561,14 @@ document.getElementById('board').addEventListener('click',e=>{
 });
 
 function tempoStrip(g){
-  const rows=ORDER.map(nm=>ally(g,nm));
+  const rows=ORDER.map((nm,ai)=>({ai,r:ally(g,nm)})).filter(e=>e.r);
   const W=820, laneH=46, top=28, bot=24, M={l:118,r:20};
   const H=top+rows.length*laneH+bot;
   const X=t=>M.l+(t/g.dur)*(W-M.l-M.r);
   let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Age timeline for ${esc(ED[g.id].title)}">`;
   for(let t=0;t<=g.dur;t+=600) s+=`<text class="axlab" x="${X(t)}" y="${H-6}" text-anchor="middle">${fmt(t)}</text>`;
-  rows.forEach((r,i)=>{
-    const cy=top+i*laneH+laneH/2, c=`var(${ACOL[i]})`;
+  rows.forEach(({ai,r},i)=>{
+    const cy=top+i*laneH+laneH/2, c=`var(${AC(ai)})`;
     s+=`<text x="${M.l-12}" y="${cy+4}" text-anchor="end" class="mono" font-size="12.5" font-weight="600" fill="${c}">${esc(r.name)}</text>`;
     s+=`<line x1="${M.l}" y1="${cy}" x2="${W-M.r}" y2="${cy}" stroke="var(--hair)" stroke-width="2"/>`;
     [['F','Feudal'],['C','Castle'],['I','Imperial']].forEach(([lab,k])=>{
@@ -606,11 +617,11 @@ const NONMIL=new Set(['Villager','Trade Cart']);
 function forcesPanel(g){
   let l='';
   ORDER.forEach((nm,ai)=>{
-    const r=ally(g,nm);
+    const r=ally(g,nm); if(!r) return;
     const mil=Object.entries(r.prod).filter(([u])=>!NONMIL.has(u)).slice(0,4);
     const mx=Math.max(...mil.map(([,n])=>n),1);
-    l+=`<div class="pname" style="color:var(${ACOL[ai]})">${esc(nm)}</div>`;
-    l+=mil.map(([u,n])=>`<div class="prow"><span class="nm">${esc(u)}</span><span class="bar" style="width:${Math.max(5,n/mx*100)}%;background:var(${ACOL[ai]});opacity:.85"></span><span class="ct">${n}</span></div>`).join('')||'<div class="prow"><span class="nm" style="color:var(--muted)">—</span></div>';
+    l+=`<div class="pname" style="color:var(${AC(ai)})">${esc(nm)}</div>`;
+    l+=mil.map(([u,n])=>`<div class="prow"><span class="nm">${esc(u)}</span><span class="bar" style="width:${Math.max(5,n/mx*100)}%;background:var(${AC(ai)});opacity:.85"></span><span class="ct">${n}</span></div>`).join('')||'<div class="prow"><span class="nm" style="color:var(--muted)">—</span></div>';
   });
   let fr='';
   g.roster.filter(p=>p.ally<0).forEach(p=>{
@@ -623,22 +634,26 @@ function forcesPanel(g){
 }
 const SMITH=new Set(['Fletching','Forging','Padded Archer Armor','Scale Mail Armor','Scale Barding Armor']);
 function pulsePanel(g){
-  const nb=Math.max(...ORDER.map(nm=>ally(g,nm).vilbuckets.length));
   let lanes='';
+  const lastPartial=(g.dur%600)<300; // final bucket may cover only seconds — a 0 there is not an idle stretch
   ORDER.forEach((nm,ai)=>{
-    const r=ally(g,nm); const mx=Math.max(...r.vilbuckets,1);
-    const bars=r.vilbuckets.map(v=>v===0
-      ?`<span class="b zero" title="0 villagers this 10min"></span>`
-      :`<span class="b" style="height:${Math.max(6,v/mx*100)}%;background:var(${ACOL[ai]});opacity:.85" title="${v} villagers"></span>`).join('');
-    lanes+=`<div class="lane"><span class="nm" style="color:var(${ACOL[ai]})">${esc(nm)}</span><div class="bars">${bars}</div><span class="tot">${r.vills}</span></div>`;
+    const r=ally(g,nm); if(!r) return;
+    const mx=Math.max(...r.vilbuckets,1);
+    const bars=r.vilbuckets.map((v,bi)=>v===0
+      ?((bi===r.vilbuckets.length-1&&lastPartial)
+        ?`<span class="b" style="height:6%;opacity:.25" title="partial bucket"></span>`
+        :`<span class="b zero" title="0 villagers this 10min"></span>`)
+      :`<span class="b" style="height:${Math.max(6,v/mx*100)}%;background:var(${AC(ai)});opacity:.85" title="${v} villagers"></span>`).join('');
+    lanes+=`<div class="lane"><span class="nm" style="color:var(${AC(ai)})">${esc(nm)}</span><div class="bars">${bars}</div><span class="tot">${r.vills}</span></div>`;
   });
   // tech timeline
-  const W=820,H=118,M={l:104,r:40,t:14,b:20},laneH=28;
+  const present=ORDER.map((nm,ai)=>({ai,r:ally(g,nm)})).filter(e=>e.r);
+  const W=820,M={l:104,r:40,t:14,b:20},laneH=28,H=M.t+present.length*laneH+M.b;
   const X=t=>M.l+(t/g.dur)*(W-M.l-M.r);
   let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Key upgrade timing per player">`;
   for(let t=0;t<=g.dur;t+=600) s+=`<text class="axlab" x="${X(t)}" y="${H-4}" text-anchor="middle">${fmt(t)}</text>`;
-  ORDER.forEach((nm,ai)=>{
-    const r=ally(g,nm); const cy=M.t+ai*laneH+laneH/2; const c=`var(${ACOL[ai]})`;
+  present.forEach(({ai,r},li)=>{
+    const nm=r.name; const cy=M.t+li*laneH+laneH/2; const c=`var(${AC(ai)})`;
     s+=`<line x1="${M.l}" y1="${cy}" x2="${W-M.r}" y2="${cy}" stroke="var(--hair)" stroke-width="1.5"/>`;
     s+=`<text x="${M.l-10}" y="${cy+4}" text-anchor="end" class="mono" font-size="11.5" font-weight="600" fill="${c}">${esc(nm.slice(0,12))}</text>`;
     let firstSmith=null;
@@ -792,7 +807,7 @@ function wireMap(g){
 }
 
 // theme refresh
-const refresh=()=>{ _cv={}; const on=[...tabsEl.querySelectorAll('.tab')].findIndex(t=>t.classList.contains('on')); if(on>=0) renderGame(on); };
+const refresh=()=>{ _cv={}; if(mapState) mapState.dead=true; const on=[...tabsEl.querySelectorAll('.tab')].findIndex(t=>t.classList.contains('on')); if(on>=0) renderGame(on); };
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',refresh);
 new MutationObserver(refresh).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
@@ -805,8 +820,8 @@ tg.addEventListener('click',()=>{
     let h='';
     G.forEach((g,i)=>{
       h+=`<h3 class="serif" style="margin:18px 0 0;font-size:16px">Game ${i+1} — ${ED[g.id].title}</h3>
-      <div style="overflow-x:auto"><table><thead><tr><th>Player</th><th>Civ</th><th>Feudal</th><th>Castle click→arr</th><th>Imperial</th><th>Vills</th><th>Units</th><th>Carts</th><th>Upgrades</th><th>Attack orders</th></tr></thead><tbody>`;
-      ORDER.forEach(nm=>{const r=ally(g,nm);
+      <div style="overflow-x:auto"><table><thead><tr><th>Player</th><th>Civ</th><th>Feudal</th><th>Castle click→arr</th><th>Imperial</th><th>Vills</th><th>Units</th><th>Carts</th><th>Upgrades</th><th>Targeted orders</th></tr></thead><tbody>`;
+      ORDER.forEach(nm=>{const r=ally(g,nm); if(!r) return;
         h+=`<tr><td>${esc(r.name)}</td><td>${esc(r.civ)}</td><td>${fmt(r.ages.Feudal)}</td><td>${fmt(r.ages.Castle)}→${fmt(r.entered.Castle)}</td><td>${fmt(r.ages.Imperial)}</td><td>${r.vills}</td><td>${r.total}</td><td>${r.tradecarts}</td><td>${r.upgrades.length}</td><td>${r.attacks}</td></tr>`;});
       h+=`</tbody></table></div>`;
     });

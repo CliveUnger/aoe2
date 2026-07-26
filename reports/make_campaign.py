@@ -14,8 +14,11 @@ Usage:
 The page renders fully with computed defaults; --editorial overrides any of:
   {"eyebrow","title","sub","tiles":[{cls,k,v,s}],"order":[names],
    "castle_target_min":22,
-   "games":{"g1":{"title","foes","sum","moments":[["7:32","..."],...]}, ...},
+   "games":{"g1":{"title","foes","sum","moments":[["7:32","..."],...],
+                  "match":"substring of g1's replay filename (warns on mismatch)"}, ...},
+   "bo":{"player name":"note under their build-order table"},
    "advice":[{name,ci,role,ally,ev,n3:[[k,v]..],fx:[..]}, ...]}
+Editorial games bind to g1..gN by replay ARGUMENT POSITION — use "match".
 
 Needs the v68-patched mgz (see AGENTS.md). See AGENTS.md "Metric gotchas"
 for what these numbers do and don't mean.
@@ -38,7 +41,10 @@ KEY = {"Fletching", "Bodkin Arrow", "Bracer", "Padded Archer Armor",
        "Elite Skirmisher", "Cavalier", "Bloodlines", "Husbandry", "Forging",
        "Iron Casting", "Blast Furnace", "Chemistry", "Loom", "Wheelbarrow",
        "Hand Cart", "Pikeman", "Man-at-Arms", "Ballistics", "Thumb Ring",
-       "Parthian Tactics"}
+       "Parthian Tactics",
+       # keep in sync with SMITH1 below and SMITHSET in campaign.html —
+       # a smith tech missing here is invisible to the upgrade timeline
+       "Scale Mail Armor", "Scale Barding Armor"}
 BUCKET = 600          # villager-timeline bucket (s)
 FIGHT_B = 40          # attrition bucket (s)
 FIGHT_TH = 12         # combined gross losses to open a window
@@ -66,35 +72,48 @@ def extract(path, ally_names):
                        "start": [round(p.position.x, 1), round(p.position.y, 1)] if okp(p.position) else None}
 
     seen = set()
+    prev_adj = None
     prod = defaultdict(Counter)
     ages = defaultdict(dict)
     rc = defaultdict(dict)        # last research click per tech (re-click = cancel)
-    vil = defaultdict(lambda: [0] * 12)
+    NV = dur // BUCKET + 1        # villager buckets sized to the game, no 2h clamp
+    vil = defaultdict(lambda: [0] * NV)
     vqe = defaultdict(list)       # villager queue events (t, amount)
     firstb = defaultdict(dict)    # first placement of key eco buildings
     builds, moves = defaultdict(list), defaultdict(list)
     BO_BLDG = {"Lumber Camp", "Mining Camp", "Mill", "Blacksmith", "Market"}
     for a in m.actions:
         if a.player is None:
+            prev_adj = None
             continue
         n, ty, pl, t = a.player.number, a.type.name, a.payload or {}, sec(a.timestamp)
-        if ty in ("MAKE", "DE_QUEUE", "RESEARCH"):
-            # DE recorder duplicates ~2-6% of the POV player's own commands
-            key = (n, ty, a.timestamp, pl.get("unit"), pl.get("technology_id"),
-                   pl.get("amount"), str(pl.get("object_ids")))
+        # DE recorder duplicates ~2-6% of the POV player's own commands as
+        # byte-identical ADJACENT records. Set-based dedup (full identity, same
+        # key as debrief/extract_full) for the typed commands; adjacent-dup
+        # skip for everything else (MOVE/ORDER/...), so maps, aggression and
+        # build counts aren't inflated either.
+        adj = (n, ty, a.timestamp, str(pl), str(a.position))
+        if ty in ("MAKE", "DE_QUEUE", "RESEARCH", "BUILD"):
+            key = (n, ty, a.timestamp, pl.get("sequence"), pl.get("unit_id"),
+                   pl.get("technology_id"), pl.get("building_id"), str(pl.get("object_ids")))
             if key in seen:
+                prev_adj = adj
                 continue
             seen.add(key)
+        elif adj == prev_adj:
+            continue
+        prev_adj = adj
         if ty in ("MAKE", "DE_QUEUE") and pl.get("unit"):
             amt = pl.get("amount", 1) if ty == "DE_QUEUE" else 1
             prod[n][pl["unit"]] += amt
             if pl["unit"] == "Villager":
-                vil[n][min(t // BUCKET, 11)] += amt
+                vil[n][min(t // BUCKET, NV - 1)] += amt
                 vqe[n].append((t, amt))
         elif ty == "RESEARCH":
             tid, tech = pl.get("technology_id"), pl.get("technology")
             if tid in AGE_ID:
-                ages[n].setdefault(AGE_ID[tid], t)
+                # LAST click wins, ages included: a re-click proves a cancel
+                ages[n][AGE_ID[tid]] = t
             elif tech:
                 rc[n][tech] = t
         elif ty == "BUILD":
@@ -168,18 +187,20 @@ def extract(path, ally_names):
                        "prod": dict(prod[n].most_common(8)),
                        "total": sum(prod[n].values()),
                        "vills": sum(vil[n]),
-                       "vilbuckets": vil[n][:max(1, dur // BUCKET + 1)],
+                       "vilbuckets": vil[n],
                        "tradecarts": prod[n].get("Trade Cart", 0),
                        "upgrades": sorted(({"t": t, "name": x} for x, t in rc[n].items()
                                            if x in KEY), key=lambda u: u["t"]),
                        "attacks": sum(1 for q in moves[n] if q[3] == 1),
                        "nbuilds": len(builds[n])})
     real = [x for x in fights if not x["endgame"]]
+    # dealt/taken over field windows only, matching the page's
+    # "(field, excl. endgame)" labeling
     rec = {"w": sum(1 for x in real if x["outcome"] == "won"),
            "l": sum(1 for x in real if x["outcome"] == "lost"),
            "t": sum(1 for x in real if x["outcome"] == "trade"),
-           "dealt": sum(x["them"] for x in fights),
-           "taken": sum(x["us"] for x in fights)}
+           "dealt": sum(x["them"] for x in real),
+           "taken": sum(x["us"] for x in real)}
     return {"label": Path(path).stem, "map": m.map.name, "dim": dim, "dur": dur,
             "fights": fights, "record": rec, "roster": roster,
             "moves": {str(n): (mv if P[n]["ally"] >= 0 else mv[::4]) for n, mv in moves.items()},
@@ -211,10 +232,20 @@ def main():
         editorial = json.load(open(args.editorial))
     editorial.setdefault("castle_target_min", args.castle_target)
 
+    # editorial games bind to g1..gN by ARGUMENT POSITION — an optional
+    # "match" substring per game entry catches a mis-ordered replay list
+    for g in games:
+        ge = (editorial.get("games") or {}).get(g["id"]) or {}
+        if ge.get("match") and ge["match"] not in g["label"]:
+            print(f"WARNING: editorial {g['id']} expects a replay matching "
+                  f"{ge['match']!r} but got {g['label']!r} — check replay order",
+                  file=sys.stderr)
+
     html = open(args.template).read()
     html = html.replace("__TITLE__", args.title)
+    # <-escape so a player name containing </script> can't break the page
     html = html.replace("__DATA__", json.dumps({"games": games, "editorial": editorial},
-                                               separators=(",", ":")))
+                                               separators=(",", ":")).replace("<", "\\u003c"))
     open(args.out, "w").write(html)
     print(f"wrote {args.out} ({len(html)//1024} KB)", file=sys.stderr)
 
