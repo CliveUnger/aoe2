@@ -209,6 +209,13 @@ look: slate ground, bronze/gold accent, serif display, team-blue vs enemy-red).
 - Britons fix: one gold sink (Arbalest, which out-ranges at ~9), gold-free Skirm/Halb screen,
   Siege Onager for what arrows can't kill.
 
+## Published: Squad Campaign Report — now "One Saturday, FOUR battles" (updated 2026-07-26)
+Same URL as below; regenerated via `reports/make_campaign.py` with all 4 games (incl. G4 "The
+Wall" 17:26) + `reports/editorial/2026-07-25.json`. Adds "The openings, under the microscope":
+per-player build-order tables (first camps, Loom, smith built, smith-techs-by-20:00, vills
+queued at Castle click) + villager-ledger notes (rally points, cancelled techs, stranded
+builders). To update again: rerun the generator into the artifact path and republish.
+
 ## Published: Squad Campaign Report (2026-07-25, "One Saturday, three battles")
 `https://claude.ai/code/artifact/b3b05fc6-228c-4ef2-a087-e8ce6fceed7e` — source `trilogy.html`
 in session scratchpad; data extractor logic mirrors the audited debrief.py (POV dedup, last-click

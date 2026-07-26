@@ -207,6 +207,10 @@
   .ftable td.won{color:var(--good)} .ftable td.lost{color:var(--bad)} .ftable td.trade{color:var(--warn)}
   .ftable tr.eg td{color:var(--muted); font-style:italic}
 
+  .note{margin-top:12px; padding:12px 14px; background:var(--panel-2); border-left:3px solid var(--pc); border-radius:0 5px 5px 0;
+    font-size:13.5px; color:var(--ink-2)}
+  .note b{color:var(--ink)}
+
   /* method + table */
   .method{margin-top:52px; padding:20px 24px; background:var(--panel-2); border:1px solid var(--hair); border-radius:8px;
     font-size:13px; color:var(--ink-2)}
@@ -260,6 +264,12 @@
     <p class="sec-d">Every attack order each of us issued across these games, classified by map side. Green = taking the fight to them; red = defending our own ground. A day spent in the red is a day spent reacting.</p>
     <div class="card agg" id="agg"></div>
     <div class="totals card" style="padding:14px 18px" id="daytotals"></div>
+  </div>
+
+  <div class="sec">
+    <h2 class="sec-h serif">The openings, under the microscope</h2>
+    <p class="sec-d">Build-order fundamentals per player, per game. All times are command clicks; "—" means it never happened. The notes carry the per-villager ledger's findings — TC rally points, stranded builders, cancelled techs.</p>
+    <div class="advice" id="bo"></div>
   </div>
 
   <div class="sec">
@@ -488,6 +498,27 @@ document.getElementById('board').innerHTML=G.map((g,i)=>{
   });
   h+=`</tbody></table>`;
   document.getElementById('daytotals').innerHTML=h;
+})();
+
+// ---------- build order critique ----------
+(function(){
+  const host=document.getElementById('bo'); if(!host) return;
+  const METRICS=[
+    ['First lumber camp', r=>fmt((r.bo||{}).lumber)],
+    ['First mining camp', r=>fmt((r.bo||{}).mine)],
+    ['Loom click', r=>{const u=(r.upgrades||[]).find(u=>u.name==='Loom');return u?fmt(u.t):'—';}],
+    ['Blacksmith built', r=>fmt((r.bo||{}).smith)],
+    ['Smith techs clicked by 20:00', r=>String((r.bo||{}).smith20??'—')],
+    ['Villagers queued at Castle click', r=>((r.bo||{}).vq_castle==null?'—':String(r.bo.vq_castle))],
+  ];
+  host.innerHTML=ORDER.map((nm,ai)=>{
+    const rows=G.map(g=>ally(g,nm));
+    const table=`<div style="overflow-x:auto"><table><thead><tr><th></th>${G.map((g,i)=>`<th>G${i+1}</th>`).join('')}</tr></thead><tbody>`+
+      METRICS.map(([label,f])=>`<tr><td>${label}</td>${rows.map(r=>`<td>${r?f(r):'—'}</td>`).join('')}</tr>`).join('')+`</tbody></table></div>`;
+    const note=(E.bo||{})[nm];
+    return `<div class="adv" style="--pc:var(${ACOL[ai]})"><div class="top"><div class="badge">${(((rows[0]||{}).civ)||'??').slice(0,2).toUpperCase()}</div><div><h3 class="serif">${esc(nm)}</h3><div class="role">Opening fundamentals</div></div></div>
+      <div style="padding:14px 20px">${table}${note?`<div class="note">${note}</div>`:''}</div></div>`;
+  }).join('');
 })();
 
 // ---------- advice ----------

@@ -70,7 +70,10 @@ def extract(path, ally_names):
     ages = defaultdict(dict)
     rc = defaultdict(dict)        # last research click per tech (re-click = cancel)
     vil = defaultdict(lambda: [0] * 12)
+    vqe = defaultdict(list)       # villager queue events (t, amount)
+    firstb = defaultdict(dict)    # first placement of key eco buildings
     builds, moves = defaultdict(list), defaultdict(list)
+    BO_BLDG = {"Lumber Camp", "Mining Camp", "Mill", "Blacksmith", "Market"}
     for a in m.actions:
         if a.player is None:
             continue
@@ -87,14 +90,19 @@ def extract(path, ally_names):
             prod[n][pl["unit"]] += amt
             if pl["unit"] == "Villager":
                 vil[n][min(t // BUCKET, 11)] += amt
+                vqe[n].append((t, amt))
         elif ty == "RESEARCH":
             tid, tech = pl.get("technology_id"), pl.get("technology")
             if tid in AGE_ID:
                 ages[n].setdefault(AGE_ID[tid], t)
             elif tech:
                 rc[n][tech] = t
-        elif ty == "BUILD" and okp(a.position):
-            builds[n].append([round(a.position.x, 1), round(a.position.y, 1), t])
+        elif ty == "BUILD":
+            b = pl.get("building")
+            if b in BO_BLDG:
+                firstb[n].setdefault(b, t)
+            if okp(a.position):
+                builds[n].append([round(a.position.x, 1), round(a.position.y, 1), t])
         if ty in ("MOVE", "ORDER") and okp(a.position):
             moves[n].append([round(a.position.x, 1), round(a.position.y, 1), t,
                              1 if ty == "ORDER" else 0])
@@ -145,10 +153,18 @@ def extract(path, ally_names):
         else:
             k += 1
 
+    SMITH1 = {"Fletching", "Forging", "Padded Archer Armor",
+              "Scale Mail Armor", "Scale Barding Armor"}
     roster = []
     for n, p in sorted(P.items()):
         e = {k2: v + AGE_RS[k2] for k2, v in ages[n].items()}
-        roster.append({**p, "ages": ages[n], "entered": e,
+        cc = ages[n].get("Castle")
+        bo = {"lumber": firstb[n].get("Lumber Camp"), "mine": firstb[n].get("Mining Camp"),
+              "mill": firstb[n].get("Mill"), "smith": firstb[n].get("Blacksmith"),
+              "market": firstb[n].get("Market"),
+              "smith20": sum(1 for x, t2 in rc[n].items() if x in SMITH1 and t2 <= 1200),
+              "vq_castle": sum(a2 for t2, a2 in vqe[n] if t2 <= cc) if cc is not None else None}
+        roster.append({**p, "ages": ages[n], "entered": e, "bo": bo,
                        "prod": dict(prod[n].most_common(8)),
                        "total": sum(prod[n].values()),
                        "vills": sum(vil[n]),

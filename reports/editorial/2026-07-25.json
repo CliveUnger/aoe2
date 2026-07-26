@@ -1,0 +1,92 @@
+{
+  "eyebrow": "Squad Campaign Report · Arabia ×4 · vs Hard AI · 2026-07-25",
+  "title": "One Saturday, four battles.",
+  "sub": "Four team games, four defeats — a <b>29-minute collapse</b>, a <b>99-minute war</b> lost by two minutes in a base race, a <b>concession from a winning position</b>, and a wall fight that broke the same way. The pattern never changed: <b>we don't lose fair fights — we lose the clock</b>. New in this edition: the per-villager ledger, and the build-order critique it produced.",
+  "castle_target_min": 22,
+  "tiles": [
+    {"cls": "red", "k": "Session record", "v": "0–4", "s": "two of them competitive to the very end"},
+    {"cls": "", "k": "Gross attrition", "v": "1,794<small> dealt</small> · 2,064<small> taken</small>", "s": "objects destroyed (units, buildings, farms — all causes)"},
+    {"cls": "red", "k": "Smith techs by 22:00 — Olive", "v": "0 ×4", "s": "zero blacksmith techs clicked before 22:00, all four games"}
+  ],
+  "games": {
+    "g1": {
+      "title": "The Collapse", "foes": "Khitans + Hindustanis",
+      "sum": "Over in <b>29:09</b>. Two of our three Castle arrivals landed after minute 26 — <b>studious's Castle Age arrived at 29:11, two seconds after the game ended</b>. The one real fight (27:00, on our ground) was all-Feudal against Castle-age armies: −193 for +158, and done.",
+      "moments": [
+        ["7:32", "<b>studious clicks Feudal</b> — fastest opening of the whole day."],
+        ["19:18", "ricky clicks Castle (arrives 21:58) — the only on-pace player."],
+        ["24:11", "Olive clicks Castle at a time that would be fine… in a 50-minute game."],
+        ["27:00", "The only battle: <b>−193 / +158</b> at our base. Feudal spears vs Castle armies."]
+      ]
+    },
+    "g2": {
+      "title": "The War", "foes": "Britons + Magyars",
+      "sum": "<b>99 minutes</b>, 16 attrition windows, and the day's big lesson. We bled through a failed mid-game campaign deep on their side, then our Imperial tech finally landed — and the fights <b>flipped</b>: won at 65:00, won at 81:00, won the 86–96min megabattle on their ground. While we won the field, home fell: <b>lost the base race by ~2 minutes</b>.",
+      "moments": [
+        ["16:50", "ricky clicks Castle (arrives 19:30), then builds the day's only real gold engine: <b>29 trade carts</b>."],
+        ["48:20", "The failed campaign begins on their side — five brutal windows, ~−600 gross over 15 min."],
+        ["62:56", "Olive's Bracer/Iron Casting finally land. <b>Every major fight after this point: won.</b>"],
+        ["96:20", "We win the biggest battle of the day (+521/−468, their side) — as our own base burns."],
+        ["98:20", "Home falls. Defeat at 99:20. The army was right; it was 20 minutes late."]
+      ]
+    },
+    "g3": {
+      "title": "The Concession", "foes": "Burgundians + Hindustanis",
+      "sum": "We quit at <b>47:31</b> because the AI hit Imperial first — while our field record stood at <b>2 wins, 0 losses, 2 trades, +203/−65</b>. Two minutes before the GG, ricky's fresh Imperial army had just razed <b>120 enemy objects for 2 lost</b> on their side of the map. This one was still alive.",
+      "moments": [
+        ["8:14", "ricky's fastest Feudal click of his day (arrives 10:24). Cleanest opening in game 3."],
+        ["25:04", "Olive's best Castle click of the day — the week's trend keeps improving."],
+        ["40:55", "ricky <b>enters Imperial</b>. The window where fights flip is opening…"],
+        ["45:00", "<b>−2 / +120</b> on their side. The best single window our squad produced all day."],
+        ["47:31", "GG typed. Field record at that moment: 2W·0L·2T. The data votes: play it out."]
+      ]
+    },
+    "g4": {
+      "title": "The Wall", "foes": "Burgundians + Hindustanis",
+      "sum": "Defeat in <b>49:36</b> despite a <b>3W·1L·1T</b> field record. The AI's push hit at ~22:00 — the wall fight — while all three of us were still in Feudal; Castle arrivals landed 29:01–30:22, including <b>ricky's regression</b> (27:42 click after a militia-opening experiment). We out-fought them late, again; the damage from minute 22 decided it, again.",
+      "moments": [
+        ["3:31", "<b>Olive clicks Loom… then cancels it.</b> It gets re-clicked at 37:21 — the cancel habit in one line."],
+        ["13:33", "Five of ricky's villagers sit <b>housed until 21:25</b> — the militia opening starved house wood."],
+        ["22:25", "The wall fight. Olive throws up a forward Archery Range mid-attack — <b>its three builders die with it</b> (the villager ledger caught them)."],
+        ["27:42", "ricky's Castle click — his slowest of the day after three games under 19:20."]
+      ]
+    }
+  },
+  "bo": {
+    "studiousmonkey1": "The ledger's verdict: <b>world-class first minute, leaky everything-after</b>. Loom by 0:20 in all four games (0:08 in G4!) and houses up before most players' first command — then the mining camp waits until <b>17:13–20:07 every single game</b> and the TC runs at 44–49% uptime. Zero TC resource rallies set all day; new villagers stack up untasked at the TC. Your opening deserves the follow-through.",
+    "rickyflows": "Textbook camps (lumber ~2:20, mine as early as 8:32) and the only player who sets a <b>TC resource rally</b> — 3 of 4 games, and your birth-idle is ≈0 when you do vs <b>3,583s</b> the one game you didn't. That habit is proven; keep it. The leaks: <b>Loom never</b> in two games, and the G4 militia experiment — five villagers housed 13:33→21:25 and your only slow Castle (27:42).",
+    "Olive": "Huns start with <b>−100 wood</b> — and your lumber camp went down at <b>6:26 / 8:11 / 7:34</b> in three of four games, the single biggest drag on your Feudal. Loom: never, never, or ~36:00 (the 3:31 click in G4 was <b>cancelled</b> — the ledger proves it, and it's a habit: two Wheelbarrow cancels this week). You bank population instead of clicking up: <b>35–47 villagers queued before each Castle click</b>. The smith went up by ~13:00 twice — and <b>zero smith techs were clicked before 20:00 in any game</b>. Zero TC rallies; ~5,000s of proven birth idle in G1 alone."
+  },
+  "advice": [
+    {
+      "name": "studiousmonkey1", "ci": "MO", "role": "The Scalpel", "ally": 0,
+      "ev": "Fastest <b>Feudal</b> player and fastest Loom on the team (0:08–0:20, every game), with the day's best army quality — the G2 Mangudai + Trebuchet force. But it sat on the thinnest economy: <b>29 / 48 / 36 / 30 villagers</b>, TC uptime 44–49% every game.",
+      "n3": [["Villagers", "29 · 48 · 36 · 30"], ["Mining camp", "19:08 · 20:07 · 17:13 · 19:29"], ["Smith by 20:00", "0 · 0 · 2 · 2"]],
+      "fx": [
+        "<b>The TC never idles — and gets a rally.</b> You set zero TC resource rallies all day; every batch of new villagers stood around. Rally to wood and forget it.",
+        "<b>Mining camp by 12:00.</b> It came after 17:13 in all four games — that's the lid on your Castle timing.",
+        "<b>Second TC at your Castle click.</b> Your opening is elite — bank it into economy, not just tech."
+      ]
+    },
+    {
+      "name": "rickyflows", "ci": "FR", "role": "The Pacesetter", "ally": 1,
+      "ev": "Fastest <b>Castle</b> in three of four games (16:50 / 18:49 / 19:18), the only player to reach <b>Imperial</b> (twice), builder of the only trade network (29 carts, G2), and the only player who rallies his TC — the habit that zeroes birth idle. G4 was the off-game: militia opening, 27:42 Castle.",
+      "n3": [["Castle click", "19:18 · 16:50 · 18:49 · 27:42"], ["Loom", "— · — · 16:29 · 21:13"], ["Trade carts", "1 · 29 · 9 · 2"]],
+      "fx": [
+        "<b>Spend the lead.</b> You're now the team's biggest floater — G1 ended with 4,496 banked and 16 army trained all game. Upgrades and production, every surplus.",
+        "<b>Loom before 5:00.</b> Never-clicked in two games; your villagers fight raids naked.",
+        "<b>Retire the militia opening, keep the trade.</b> G4's experiment cost 5 housed villagers and your only slow Castle; G2's 29 carts funded the comeback — make that the standard."
+      ]
+    },
+    {
+      "name": "Olive", "ci": "HU", "role": "The Engine", "ally": 2,
+      "ev": "The team's production engine all four games — <b>1,210 units</b> across the day, most on the team — the most aggressive map presence (23% of attack orders on their side), and the resource float from last week is provably gone. The leaks have moved upstream: the opening and the blacksmith.",
+      "n3": [["Lumber camp", "6:26 · 8:11 · 1:29 · 7:34"], ["Loom", "— · 35:40 · — · 37:21"], ["Smith techs by 20:00", "0 · 0 · 0 · 0"]],
+      "fx": [
+        "<b>Lumber camp by 4:00, Loom for real.</b> Huns start −100 wood — the camp can't wait until 6:26. And stop cancelling techs (3:31 Loom → cancelled; two Wheelbarrow cancels this week).",
+        "<b>Click the smith pair by 14:00.</b> The building was up by ~13:00 twice and the techs never followed — zero by 20:00 in four straight games. G2 proved fights flip when they land.",
+        "<b>Stop banking population.</b> 35–47 villagers queued before each Castle click — click at ~30 and the age arrives five minutes sooner. Set a TC rally while you're there."
+      ]
+    }
+  ]
+}
