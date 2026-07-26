@@ -41,6 +41,20 @@ works: header + body + actions + timeseries.
 - `debrief.py <replay> [--me NAME]` — **full analysis JSON** (per-player composition, age-ups,
   key upgrades, eco/army timeseries, winner, eAPM; plus spatial: build footprints + your
   movement/attack trail). This is the data layer behind the report artifacts. Default `--me Olive`.
+- `extract_full.py <replay> <out.json>` — **superset extractor** (added 2026-07-25, 4-game day
+  analysis). Everything debrief.py has plus: ALL research (not just KEY_UPGRADES, with click
+  counts), all-building footprints with ids, ALL-player MOVE/ORDER trails, market SELL/BUY,
+  resign/delete events, per-minute command counts, per-resource **spending reconstruction**
+  (units/techs/buildings at `data/techtree.json` costs — refresh that file after balance
+  patches), and fight windows (gross-attrition, ≤60s merge gap, 4-min cap, endgame-60s
+  excluded) precomputed with per-player loss attribution. POV dedup here keys on the payload
+  `sequence` field (byte-identical dupes share it; tighter than debrief.py's key). Civ-invalid
+  queue filter: only drops not-in-tree units with total ≤2 (client junk); larger counts are
+  techtree line-listing misses (e.g. Hindustanis Camel Scout is listed under Camel Rider) and
+  are kept. Derived-metric recipes that proved useful (see 2026-07-25 section): TC-uptime% =
+  vills_queued×25s / TC-seconds; "readiness at 22:00"; AI Castle-arrival proxy = AI's 2nd TC
+  build time; Feudal aggression = enemy-side attack orders before 20:00. NB `chat` in replays
+  is AI status spam ("-Villager Created--"), unattributed — no human comms recorded.
 
 ### mgz model API cheatsheet (`from mgz.model import parse_match`)
 - `m.players[i]`: `.name .civilization .civilization_id .winner .team_id .eapm .timeseries
@@ -161,6 +175,29 @@ click, real 24:42). Big army losses (−21, −67,
 fights wrecks my Castle") is **backwards**: the float delayed Castle; the delay made the fights
 unwinnable. Prescription given: (1) floor rule — 800f+200g on hand → click next age immediately;
 (2) 200 rule — any resource past ~250 = idle production, add vills + a military building.
+
+## Deep-dive: the four 2026-07-25 3v2 losses (analysis session, evening 2026-07-25)
+All four Arabia 3v2s vs AI that day (G1 14:49 29min, G2 15:10 99min, G3 16:52 47min,
+G4 17:26 49min — G4 was played after the Squad Campaign report) analyzed with
+`extract_full.py`. **One repeated loss**: the AI reaches Castle ~19–24 (TC2 proxy
+21:51–26:46) and pushes; every game has an own-side attrition disaster starting 22:01–23:53
+(G1 team −151 → 29-min resign; G4 −80). At 22:00 the team is in Feudal in 11 of 12
+player-games. Readiness@22:00 patterns: **Olive** 0 blacksmith techs in ALL FOUR games
+(even with smith built 13:59/12:43), army 21–30 unupgraded trash, but eco now fine
+(35–47 vills, TC-uptime 59–80%, Castle clicks 24:11–28:05 still late); **ricky** fast
+Castle (16:50–19:18, G4 regressed 27:42) but 6–13 army and 1.6–4.3k banked at 22:00
+(peak bank 4.4–6.6k — now the team's biggest floater; G1: resigned with 4,496 banked
+having made 16 army all game); **studious** TC-uptime 44–49% every game, 23–26 vills
+@22:00 (total 29–48), scout-monospam 43–78 with ≤2 smith techs. Feudal aggression ~0
+enemy-side attack orders before 20:00 (G4 slight improvement: Olive 14, ricky 6).
+**G2 proves the formula**: ricky 29 trade carts + Imperial upgrades → 11W-11L-3T for an
+hour; its two −270/−233 disasters were during Olive's late Imp transition (clicked 55:50).
+G3 was conceded at 47min right after two crushing defensive wins (43:01 0 vs −30;
+44:25 0 vs −90) — field record 5W-1L-3T at concession (caveat: gross attrition can't see
+base/eco damage). Next-session targets set: Olive ≥4 smith techs clicked by 20:00;
+ricky ≥30 army by 22:00 & <1,000 banked at 22:00; studious TC-uptime ≥80% (≈40 vills
+by 22:00); team Castle click ≤19:30. Scratch analysis scripts: /tmp/aoe2-today/
+(analyze_today.py, wall.py — recipes summarized in the extract_full.py bullet above).
 
 ## Open threads / next steps Clive may want
 - Run `debrief.py` across his **other 4 replays** to find recurring patterns (Knights-alongside-archers
