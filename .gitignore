@@ -9,5 +9,8 @@ aoc-mgz/
 __pycache__/
 *.py[cod]
 
+# vill_ledger.py's extract_full JSON cache
+data/extracts/
+
 # macOS
 .DS_Store

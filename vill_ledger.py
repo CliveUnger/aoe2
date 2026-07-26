@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
-"""Per-villager task ledger v2 — validated model.
+"""Per-villager task ledger v4 — validated model.
 
-Fixes over v1: TC id from DE_QUEUE object_ids; rally = GATHER_POINT on that
-TC with a resource target; herdable/hunt gather = indefinite (DE auto-
-continues to next carcass/herdable in range); obj-target ORDERs within 2.5
-tiles of an own Farm build = farm task (villager); birth idle = order-
-preserving match of villager first-command times to TC-sim birth times
-(only for players with no resource rally — rally'd vills auto-task);
-research ledger applies the last-click cancel rule (a later re-click of the
-same tech proves the earlier click was cancelled).
-Idle numbers are LOWER-BOUND estimates; cancels/garrisons invisible.
+Usage: python vill_ledger.py [replay.aoe2record ...]   (or G1..G4 shorthand
+for the 2026-07-25 session; default all four). Needs each replay's
+extract_full.py JSON for timeseries + fight windows — auto-generated into
+--extract-dir (default data/extracts/) when missing.
+
+Model: TC id from DE_QUEUE object_ids; rally = GATHER_POINT on that TC with
+a resource target; herdable/hunt gather = indefinite (DE auto-continues to
+next carcass/herdable in range); ORDER onto own TC = garrison/drop-off
+(checked BEFORE farm proximity); other obj-target ORDERs within 2.5 tiles
+of an own Farm build = farm task (villager); birth idle = order-preserving
+match of villager first-command times to TC-sim birth times (only for
+players with no resource rally — rally'd vills auto-task); research ledger
+applies the last-click cancel rule (a later re-click of the same tech —
+ages included — proves the earlier click was cancelled). Command dedup uses
+full identity (sequence alone is NOT unique across same-tick commands).
+Idle numbers are LOWER-BOUND estimates; cancels/garrisons invisible. Known
+residual: an ORDER onto an enemy unit standing in the farm ring still
+classifies the selection as farm villagers (no unit typing in the stream).
 """
 import sys, json, logging, os
 from collections import defaultdict, Counter
@@ -17,7 +26,8 @@ from collections import defaultdict, Counter
 logging.disable(logging.CRITICAL)
 from mgz.model import parse_match
 
-TT = json.load(open(os.path.expanduser('~/dev/aoe2/data/techtree.json')))
+HERE = os.path.dirname(os.path.abspath(__file__))
+TT = json.load(open(os.path.join(HERE, 'data', 'techtree.json')))
 BUILD_TIME = {int(k): v.get('TrainTime', 30) for k, v in TT['data']['Building'].items()}
 TECH_TIME = {int(k): v.get('ResearchTime', 30) for k, v in TT['data']['Tech'].items()}
 DROPSITES = {'Lumber Camp', 'Mill', 'Mining Camp', 'Dock', 'Farm'}
@@ -44,12 +54,25 @@ def sec(td):
     return round(td.total_seconds())
 
 
+def ok_pos(pos, dim):
+    # (0,0) excluded as the null sentinel (same rule as debrief/extract_full)
+    return pos and not (pos.x == 0 and pos.y == 0) and 0 <= pos.x <= dim and 0 <= pos.y <= dim
+
+
+def dedup_key(a, pl):
+    # Full command identity, same fields as debrief/extract_full. `sequence`
+    # alone is NOT unique — two different queues clicked the same tick share it.
+    return (a.type.name, a.timestamp, pl.get('sequence'), pl.get('unit_id'),
+            pl.get('technology_id'), pl.get('building_id'), str(pl.get('object_ids')))
+
+
 def mmss(s):
     return f'{int(s)//60}:{int(s)%60:02d}'
 
 
 def analyze(replay, out_label, extract_json):
     m = parse_match(open(replay, 'rb'))
+    dim = m.map.dimension
     gaia = {o.instance_id: (o.name, o.position) for o in m.gaia}
     ex = json.load(open(extract_json))
     ts_by_name = {q['name']: q['ts'] for q in ex['players']}
@@ -64,12 +87,18 @@ def analyze(replay, out_label, extract_json):
 
         ages = {}
         all_research = defaultdict(list)  # (bld,tech) full-game clicks for cancel rule
+        seen_res = set()
         for a in m.actions:
             if a.player is p and a.type.name == 'RESEARCH':
                 pl = a.payload or {}
+                key = dedup_key(a, pl)
+                if key in seen_res:  # POV duplicate record, not a re-click
+                    continue
+                seen_res.add(key)
                 tid = pl.get('technology_id')
                 if tid in (101, 102, 103):
-                    ages.setdefault({101: 'Feudal', 102: 'Castle', 103: 'Imperial'}[tid], sec(a.timestamp))
+                    # LAST click wins: a re-click of an age proves a cancel
+                    ages[{101: 'Feudal', 102: 'Castle', 103: 'Imperial'}[tid]] = sec(a.timestamp)
                 elif pl.get('object_ids'):
                     all_research[tid].append((sec(a.timestamp), pl['object_ids'][0], pl.get('technology')))
         H = ages.get('Castle', 30 * 60) + 120
@@ -82,7 +111,7 @@ def analyze(replay, out_label, extract_json):
             ty, pl, t = a.type.name, a.payload or {}, sec(a.timestamp)
             if ty == 'DE_QUEUE' and pl.get('unit') == 'Villager':
                 tc_ids.update(pl.get('object_ids') or [])
-            if ty == 'BUILD' and pl.get('building') == 'Farm' and a.position and t <= H:
+            if ty == 'BUILD' and pl.get('building') == 'Farm' and ok_pos(a.position, dim) and t <= H:
                 farm_pos.append((a.position.x, a.position.y))
 
         def near_farm(pos):
@@ -98,7 +127,7 @@ def analyze(replay, out_label, extract_json):
                 continue
             ty, pl, t = a.type.name, a.payload or {}, sec(a.timestamp)
             if ty in ('MAKE', 'DE_QUEUE', 'RESEARCH', 'BUILD'):
-                key = (ty, a.timestamp, pl.get('sequence'), str(pl.get('object_ids')))
+                key = dedup_key(a, pl)
                 if key in seen:
                     continue
                 seen.add(key)
@@ -117,15 +146,18 @@ def analyze(replay, out_label, extract_json):
                     for o in oids:
                         if o not in scout_ids:
                             cmds[o].append((t, 'gather', r, None))
+                elif tid in tc_ids:
+                    # own-TC target = garrison/drop-off (busy, not idle). MUST be
+                    # checked before farm proximity: mid-game the TC usually sits
+                    # inside the farm ring and would be misread as farm-gathering.
+                    for o in oids:
+                        cmds[o].append((t, 'tc', None, None))
                 elif tid not in (4294967295, -1, None) and near_farm(a.position):
                     for o in oids:
                         cmds[o].append((t, 'gather', 'farm', None))
                 elif tid in (4294967295, -1, None) and a.position:
                     for o in oids:
                         cmds[o].append((t, 'ground', None, None))
-                elif tid in tc_ids:
-                    for o in oids:
-                        cmds[o].append((t, 'tc', None, None))  # garrison/drop-off: busy, not idle
                 else:
                     for o in oids:
                         cmds[o].append((t, 'obj', None, None))
@@ -233,7 +265,17 @@ def analyze(replay, out_label, extract_json):
         print(f'\n--- {p.name}  (to {mmss(H)}; Castle click {mmss(cc) if cc else "none"})')
         print(f'  villagers: {queued} queued +{len(start_vills)} start; {len(vill_ids)} task-classified ids; '
               f'obj-only ids (military/untracked): {sum(1 for o,cl in cmds.items() if o not in vill_ids and any(k=="obj" for _,k,_,_ in cl))}')
-        print(f'  TC rally: {"YES — " + str(sum(1 for _, r in rallies if r)) + " resource rallies" if res_rally else "NEVER set to a resource"}')
+        if unacc > 0:
+            print(f'  reconciliation: ~{unacc} queued vills never individually commanded '
+                  f'(rally-tasked, died young, or cancelled in queue) — approximate, queue cancels invisible')
+        if res_rally:
+            rally_msg = f'YES — {sum(1 for _, r in rallies if r)} resource rallies'
+        elif rallies:
+            rally_msg = (f'set {len(rallies)}x but NEVER to a raw resource '
+                         f'(farm/building rallies still auto-task — birth idle may be overstated)')
+        else:
+            rally_msg = 'NEVER set'
+        print(f'  TC rally: {rally_msg}')
         print(f'  CONFIRMED idle (villager provably alive after window): birth {int(birth_idle)}s' +
               (' (n/a — rally covers births)' if res_rally else '') +
               f' + mid-timeline {int(idle["task"])}s = {int(birth_idle + idle["task"])}s')
@@ -267,9 +309,39 @@ def analyze(replay, out_label, extract_json):
 
 
 SAVE = os.path.expanduser('~/Library/Application Support/Feral Interactive/Age Of Empires II/VFS/User/Games/Age of Empires 2 DE/76561198081802645/savegame')
-FILES = [('G1', '144944', 'g1'), ('G2', '151015', 'g2'), ('G3', '165218', 'g3'), ('G4', '172654', 'g4')]
-which = sys.argv[1:] or ['G1', 'G2', 'G3', 'G4']
-for gl, ts, gj in FILES:
-    if gl in which:
-        analyze(f'{SAVE}/MP Replay v101.103.48987.0 @2026.07.25 {ts} (1).aoe2record', gl,
-                f'/tmp/aoe2-today/{gj}.json')
+# shorthand for the 2026-07-25 session
+LEGACY = {'G1': '144944', 'G2': '151015', 'G3': '165218', 'G4': '172654'}
+
+
+def extract_for(replay, cache_dir):
+    """Return the extract_full.py JSON for a replay, generating it if missing."""
+    os.makedirs(cache_dir, exist_ok=True)
+    stem = os.path.splitext(os.path.basename(replay))[0]
+    out = os.path.join(cache_dir, stem + '.json')
+    if not os.path.exists(out):
+        import subprocess
+        subprocess.run([sys.executable, os.path.join(HERE, 'extract_full.py'), replay, out],
+                       check=True)
+    return out
+
+
+def main():
+    import argparse
+    ap = argparse.ArgumentParser(description='Per-villager task/idle ledger to Castle click +120s.')
+    ap.add_argument('replays', nargs='*', default=list(LEGACY),
+                    help='replay paths, or G1..G4 shorthand for the 2026-07-25 session '
+                         '(default: all four)')
+    ap.add_argument('--extract-dir', default=os.path.join(HERE, 'data', 'extracts'),
+                    help='cache dir for extract_full.py JSONs (auto-generated when missing)')
+    args = ap.parse_args()
+    for r in args.replays:
+        if r in LEGACY:
+            path = f'{SAVE}/MP Replay v101.103.48987.0 @2026.07.25 {LEGACY[r]} (1).aoe2record'
+            label = r
+        else:
+            path, label = r, os.path.basename(r)
+        analyze(path, label, extract_for(path, args.extract_dir))
+
+
+if __name__ == '__main__':
+    main()
