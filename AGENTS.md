@@ -47,8 +47,12 @@ works: header + body + actions + timeseries.
   resign/delete events, per-minute command counts, per-resource **spending reconstruction**
   (units/techs/buildings at `data/techtree.json` costs — refresh that file after balance
   patches), and fight windows (gross-attrition, ≤60s merge gap, 4-min cap, endgame-60s
-  excluded) precomputed with per-player loss attribution. POV dedup here keys on the payload
-  `sequence` field (byte-identical dupes share it; tighter than debrief.py's key). Civ-invalid
+  excluded) precomputed with per-player loss attribution. POV dedup: debrief.py and
+  extract_full.py use the SAME full-identity key (sequence/unit_id/technology_id/building_id/
+  object_ids, MAKE/DE_QUEUE/RESEARCH/BUILD) since the 2026-07-26 bug sweep; extract_full
+  additionally drops byte-identical ADJACENT duplicates of all other types (MOVE/ORDER/...),
+  and counts cmd_minutes only after dedup. NB `sequence` alone is NOT unique — same-tick
+  different commands share it. Civ-invalid
   queue filter: only drops not-in-tree units with total ≤2 (client junk); larger counts are
   techtree line-listing misses (e.g. Hindustanis Camel Scout is listed under Camel Rider) and
   are kept. Derived-metric recipes that proved useful (see 2026-07-25 section): TC-uptime% =
@@ -70,8 +74,10 @@ works: header + body + actions + timeseries.
   Unused civ synergy: Huns TEAM bonus stables +20% work rate (buffs ricky/studious cav),
   Franks mounted +20% HP, Mongols scout-line +20/30% HP Castle/Imp — a cavalry team comp
   playing trash-only armies.
-- `vill_ledger.py [G1 G2 G3 G4]` — **per-villager task ledger** to Castle click+120s (added
-  2026-07-25 evening; hardcodes that day's 4 replays in FILES — generalize paths to reuse).
+- `vill_ledger.py [replay paths or G1..G4]` — **per-villager task ledger** to Castle click+120s
+  (added 2026-07-25 evening; v4 2026-07-26 takes arbitrary replay paths, auto-generates its
+  extract_full JSONs into `data/extracts/` — no more /tmp dependency; G1..G4 remain as
+  shorthand for that day's session).
   KEY unlock: `m.gaia` WORKS on v68 (12k objects w/ instance_id+name+position: trees, Gold/
   Stone Mine, Forage Bush, herdables — these Arabia seeds use COWS) and `p.objects` gives
   starting vill/scout/TC ids, so every human right-click (ORDER) resolves to an actual
@@ -139,8 +145,9 @@ works: header + body + actions + timeseries.
   "Olive" count until fixed. debrief.py now dedups on full action identity. Corrected:
   293 Spearmen → **258** (still 3 waves), 164 Longbowmen → **153**, latest-game total 693 → 640.
 - **RESEARCH actions are CLICKS, not completions**, and re-clicks (= earlier click cancelled)
-  produce duplicates. debrief.py keeps the LAST click per non-age tech ("Wheelbarrow 12:04"
-  was a cancelled click; real 24:42) and emits `ages_entered` = click + research time
+  produce duplicates. All extractors keep the LAST click per tech — **ages included** since
+  the 2026-07-26 sweep ("Wheelbarrow 12:04" was a cancelled click; real 24:42) — and debrief
+  emits `ages_entered` = click + research time
   (130/160/190s) as a lower bound — TC queue wait adds up to ~75s more (measured vs
   `m.uptimes`, whose own player attribution is buggy in TGs). Quoted tempo: "Castle 32:48"
   = entered 35:28; "46:00" = entered ~50:14.
@@ -171,6 +178,22 @@ works: header + body + actions + timeseries.
   computed defaults; `--editorial notes.json` overrides hero/tiles/per-game narrative/advice
   (see reports/README.md). Embeds the audited methodology (POV dedup, last-click research,
   click→entered, capped attrition windows).
+
+### 2026-07-26 bug sweep (two-agent adversarial review, all findings fixed)
+All extractors now agree by construction: shared full-identity dedup key (BUILD included),
+last-click rule for AGE techs too, cmd_minutes counted post-dedup. analyze.py no longer
+merges all AIs into one name-keyed row (keys by player number). parse.py emits real teams
+(from get_teams) + civ names on the v68 path. vill_ledger v4: fixed dedup key (sequence
+is not unique per command — 13 real same-tick commands were being dropped in G2), own-TC
+garrison check moved ABOVE farm-proximity, (0,0) sentinel filter on farm positions, CLI
+paths + data/extracts cache. Campaign template generalized: auto-scaled trend y-axis (was
+hardcoded 15–32min — real 35:28/50:14 arrivals drew off-chart), data-driven legends (were
+hardcoded to the 3 names → misattributed players in the 2v2), every ally() lookup guarded
+(mixed team sizes no longer blank the page), color cycling for >3 allies, Scale Mail/
+Barding added to KEY (smith counts now match the smith timeline), dealt/taken excl endgame
+to match label, "attack orders" relabeled "targeted orders" (ORDER includes eco tasking —
+proven by the vill ledger), :60 clock rounding, editorial "match" guard. G1-G4 headline
+findings (rally points, float, late Castle) all reverified unchanged after the fixes.
 
 ## Published artifacts (claude.ai) — update in place with the Artifact tool's `url=` param
 - **After-action report** (Arabia 2v2 loss): force curve, composition matchup, upgrade tempo,
