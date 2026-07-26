@@ -21,6 +21,7 @@ logging.disable(logging.CRITICAL)
 from mgz.model import parse_match  # noqa: E402
 
 AGE_TECH = {101: "Feudal", 102: "Castle", 103: "Imperial"}
+AGE_RESEARCH_SECS = {"Feudal": 130, "Castle": 160, "Imperial": 190}  # research time; queue wait adds more
 # military/eco upgrades worth putting on a timeline (extend as needed)
 KEY_UPGRADES = {
     "Fletching", "Bodkin Arrow", "Bracer", "Padded Archer Armor",
@@ -40,7 +41,8 @@ def pname(p):
 
 
 def ok_pos(pos, dim):
-    return pos and not (pos.x == 0 and pos.y == 0) and 0 < pos.x <= dim and 0 < pos.y <= dim
+    # (0,0) excluded as the null sentinel; genuine single-zero edge coords allowed
+    return pos and not (pos.x == 0 and pos.y == 0) and 0 <= pos.x <= dim and 0 <= pos.y <= dim
 
 
 def main():
@@ -53,12 +55,16 @@ def main():
     dim = m.map.dimension
 
     prod = defaultdict(Counter)          # number -> unit -> count
-    ages = defaultdict(dict)             # number -> {age: sec}
-    upgrades = defaultdict(list)         # number -> [{t,name}]
+    ages = defaultdict(dict)             # number -> {age: sec of CLICK}
+    research_clicks = defaultdict(dict)  # (number) -> tech -> last click sec (re-clicks = cancels)
     builds = defaultdict(list)           # number -> [[x,y,t]]
     trail = []                           # [[x,y,t,is_attack]] for --me
 
     me = next((p for p in m.players if p.name == args.me), None)
+
+    # The DE recorder duplicates some of the POV player's commands (byte-identical
+    # adjacent records, ~2-6% of queue commands). Dedup on the full identity.
+    seen = set()
 
     for a in m.actions:
         if a.player is None:
@@ -66,6 +72,12 @@ def main():
         n = a.player.number
         ty = a.type.name
         pl = a.payload or {}
+        if ty in ("MAKE", "DE_QUEUE", "RESEARCH"):
+            key = (n, ty, a.timestamp, pl.get("unit"), pl.get("technology_id"),
+                   pl.get("amount"), str(pl.get("object_ids")))
+            if key in seen:
+                continue
+            seen.add(key)
         if ty == "MAKE" and pl.get("unit"):
             prod[n][pl["unit"]] += 1
         elif ty == "DE_QUEUE" and pl.get("unit"):
@@ -74,8 +86,8 @@ def main():
             tid, tech = pl.get("technology_id"), pl.get("technology")
             if tid in AGE_TECH:
                 ages[n].setdefault(AGE_TECH[tid], sec(a.timestamp))
-            if tech in KEY_UPGRADES:
-                upgrades[n].append({"t": sec(a.timestamp), "name": tech})
+            elif tech:  # non-age tech: keep LAST click (earlier ones were cancelled)
+                research_clicks[n][tech] = sec(a.timestamp)
         elif ty == "BUILD" and ok_pos(a.position, dim):
             builds[n].append([round(a.position.x, 1), round(a.position.y, 1), sec(a.timestamp)])
         if me is not None and a.player is me and ty in ("MOVE", "ORDER") and ok_pos(a.position, dim):
@@ -84,14 +96,17 @@ def main():
 
     players = []
     for p in m.players:
+        n = p.number
         players.append({
-            "number": p.number, "name": pname(p), "civ": p.civilization,
+            "number": n, "name": pname(p), "civ": p.civilization,
             "winner": p.winner, "team": p.team_id, "eapm": p.eapm,
             "is_me": p.name == args.me,
-            "ages": ages[p.number],
-            "prod": dict(prod[p.number].most_common()),
-            "total_units": sum(prod[p.number].values()),
-            "upgrades": upgrades[p.number],
+            "ages": ages[n],  # click times
+            "ages_entered": {k: v + AGE_RESEARCH_SECS[k] for k, v in ages[n].items()},  # lower bound: + research time (queue wait not included)
+            "prod": dict(prod[n].most_common()),
+            "total_units": sum(prod[n].values()),
+            "upgrades": sorted(({"t": t, "name": tech} for tech, t in research_clicks[n].items()
+                                if tech in KEY_UPGRADES), key=lambda u: u["t"]),
             "peak_obj": max((r.total_objects for r in p.timeseries), default=0),
             "ts": [[sec(r.timestamp), r.total_objects, r.total_resources] for r in p.timeseries],
         })
