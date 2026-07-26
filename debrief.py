@@ -63,7 +63,8 @@ def main():
     me = next((p for p in m.players if p.name == args.me), None)
 
     # The DE recorder duplicates some of the POV player's commands (byte-identical
-    # adjacent records, ~2-6% of queue commands). Dedup on the full identity.
+    # adjacent records, ~2-6% of queue commands). Dedup on the full identity —
+    # the SAME key as extract_full.py, so the two extractors agree by construction.
     seen = set()
 
     for a in m.actions:
@@ -72,9 +73,9 @@ def main():
         n = a.player.number
         ty = a.type.name
         pl = a.payload or {}
-        if ty in ("MAKE", "DE_QUEUE", "RESEARCH"):
-            key = (n, ty, a.timestamp, pl.get("unit"), pl.get("technology_id"),
-                   pl.get("amount"), str(pl.get("object_ids")))
+        if ty in ("MAKE", "DE_QUEUE", "RESEARCH", "BUILD"):
+            key = (n, ty, a.timestamp, pl.get("sequence"), pl.get("unit_id"),
+                   pl.get("technology_id"), pl.get("building_id"), str(pl.get("object_ids")))
             if key in seen:
                 continue
             seen.add(key)
@@ -85,7 +86,9 @@ def main():
         elif ty == "RESEARCH":
             tid, tech = pl.get("technology_id"), pl.get("technology")
             if tid in AGE_TECH:
-                ages[n].setdefault(AGE_TECH[tid], sec(a.timestamp))
+                # LAST click wins, same as other techs: a re-click of an age
+                # proves the earlier click was cancelled.
+                ages[n][AGE_TECH[tid]] = sec(a.timestamp)
             elif tech:  # non-age tech: keep LAST click (earlier ones were cancelled)
                 research_clicks[n][tech] = sec(a.timestamp)
         elif ty == "BUILD" and ok_pos(a.position, dim):

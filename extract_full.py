@@ -66,23 +66,36 @@ def main():
     market = defaultdict(list)             # n -> [[t, 'SELL'/'BUY', resource, amount]]
     resigns = {}
     deletes = defaultdict(int)
-    cmd_minutes = defaultdict(Counter)     # n -> minute -> command count (human-attributable, excl AI_ORDER/GAME)
+    # excl AI_ORDER/GAME; NB AI rows still include WORK micro spam — only
+    # compare cmd_minutes between humans, never human-vs-AI.
+    cmd_minutes = defaultdict(Counter)     # n -> minute -> command count
     seen = set()
+    prev_adj = None
 
     for a in m.actions:
         if a.player is None:
+            prev_adj = None
             continue
         n = a.player.number
         ty = a.type.name
         pl = a.payload or {}
-        if ty not in ('AI_ORDER', 'GAME'):
-            cmd_minutes[n][sec(a.timestamp) // 60] += 1
+        # POV duplication: the recorder duplicates the recording player's own
+        # commands as byte-identical ADJACENT records. The seen-set below only
+        # covers MAKE/DE_QUEUE/RESEARCH/BUILD; catch adjacent dupes of every
+        # other type here so cmd_minutes and trails aren't inflated either.
+        adj_key = (n, ty, a.timestamp, str(pl), str(a.position))
         if ty in ('MAKE', 'DE_QUEUE', 'RESEARCH', 'BUILD'):
             key = (n, ty, a.timestamp, pl.get('sequence'), pl.get('unit_id'),
                    pl.get('technology_id'), pl.get('building_id'), str(pl.get('object_ids')))
             if key in seen:
+                prev_adj = adj_key
                 continue
             seen.add(key)
+        elif adj_key == prev_adj:
+            continue
+        prev_adj = adj_key
+        if ty not in ('AI_ORDER', 'GAME'):
+            cmd_minutes[n][sec(a.timestamp) // 60] += 1
         t = sec(a.timestamp)
         if ty in ('MAKE', 'DE_QUEUE') and pl.get('unit'):
             uid = pl.get('unit_id')
@@ -92,7 +105,9 @@ def main():
         elif ty == 'RESEARCH':
             tid, tech = pl.get('technology_id'), pl.get('technology')
             if tid in AGE_TECH:
-                ages[n].setdefault(AGE_TECH[tid], t)
+                # LAST click wins, same as other techs: a re-click of an age
+                # proves the earlier click was cancelled.
+                ages[n][AGE_TECH[tid]] = t
             elif tech:
                 rec = research_clicks[n].setdefault(tech, {'id': tid, 'clicks': 0})
                 rec['t'] = t
@@ -204,8 +219,11 @@ def main():
         'players': players,
         'trails': {str(k): v for k, v in trails.items() if k in human},
         'fight_windows': windows,
-        'chat': [{'t': sec(c.timestamp) if c.timestamp else None,
-                  'player': getattr(c.player, 'name', None) or str(c.player), 'msg': c.message}
+        'chat': [{'t': sec(c.timestamp) if c.timestamp is not None else None,
+                  'player': (getattr(c.player, 'name', None)
+                             or name_by_n.get(getattr(c.player, 'number', None))
+                             or (str(c.player) if c.player is not None else None)),
+                  'msg': c.message}
                  for c in m.chat],
     }
     json.dump(out, open(outpath, 'w'), separators=(',', ':'))
