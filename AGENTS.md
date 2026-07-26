@@ -53,8 +53,23 @@ works: header + body + actions + timeseries.
   techtree line-listing misses (e.g. Hindustanis Camel Scout is listed under Camel Rider) and
   are kept. Derived-metric recipes that proved useful (see 2026-07-25 section): TC-uptime% =
   vills_queued×25s / TC-seconds; "readiness at 22:00"; AI Castle-arrival proxy = AI's 2nd TC
-  build time; Feudal aggression = enemy-side attack orders before 20:00. NB `chat` in replays
-  is AI status spam ("-Villager Created--"), unattributed — no human comms recorded.
+  build time; Feudal aggression = enemy-side attack orders before 20:00; TC-idle via
+  **queue simulation** (vill queues + Loom 25s + Feudal 130s / Castle 160s as serial jobs on
+  one TC — exact modulo cancels; also yields true trained-pop at age clicks, which beats raw
+  queued counts for batch-queuers); housed-stall detection = sim pop vs 5+5×houses(+25s
+  build). Villager idle/tasking is NOT recoverable (command stream, no unit state) — camp/
+  mill build times are the eco-layout proxy. NB `chat` in replays is AI status spam
+  ("-Villager Created--"), unattributed — no human comms recorded.
+  Build-order findings (2026-07-25 games; bo.py in /tmp scratch, recipes above): Olive
+  lumber camp 6:26–8:11 in 3 of 4 games (Huns start −100 wood!) + Loom never/~36:00 +
+  Castle clicked at 38–47 pop (banks pop instead of clicking; could click ~30 pop ≈19:30);
+  ricky textbook opening + fast Castle 16:50–19:18 @24–28 pop but no follow-through
+  (Loom never/never/16:29/21:13; G4 militia-opening regression, 5 housed vills 13:33–21:25,
+  Castle 27:42); studious best first 3 min (2 houses + Loom by 0:20) but Feudal click at
+  12–19 pop then worst TC idle (461–654s to 25:00) and mining camp 17:13–20:07 every game.
+  Unused civ synergy: Huns TEAM bonus stables +20% work rate (buffs ricky/studious cav),
+  Franks mounted +20% HP, Mongols scout-line +20/30% HP Castle/Imp — a cavalry team comp
+  playing trash-only armies.
 
 ### mgz model API cheatsheet (`from mgz.model import parse_match`)
 - `m.players[i]`: `.name .civilization .civilization_id .winner .team_id .eapm .timeseries
