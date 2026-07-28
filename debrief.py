@@ -11,9 +11,9 @@ Usage:
 
 Needs the v68-patched mgz (editable clone at ./aoc-mgz, see README).
 """
-import sys
-import json
 import argparse
+import json
+import sys
 from collections import Counter, defaultdict
 
 from replaylib import load_match, sec

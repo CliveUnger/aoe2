@@ -23,15 +23,15 @@ Editorial games bind to g1..gN by replay ARGUMENT POSITION — use "match".
 Needs the v68-patched mgz (see AGENTS.md). See AGENTS.md "Metric gotchas"
 for what these numbers do and don't mean.
 """
-import sys
+import argparse
 import json
 import math
-import argparse
+import sys
+from collections import Counter, defaultdict
 from pathlib import Path
-from collections import defaultdict, Counter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # repo root, for replaylib
-from replaylib import load_match, sec  # noqa: E402
+from replaylib import load_match, sec
 
 AGE_ID = {101: "Feudal", 102: "Castle", 103: "Imperial"}
 AGE_RS = {"Feudal": 130, "Castle": 160, "Imperial": 190}
@@ -147,7 +147,7 @@ def extract(path, ally_names):
             us, them = sum(aL[k:j + 1]), sum(fL[k:j + 1])
             pk = max(range(k, j + 1), key=lambda x: aL[x] + fL[x])
             xs, ys = [], []
-            for n, mv in moves.items():
+            for _n, mv in moves.items():
                 for x, y, t, at in mv:
                     if at and k * FIGHT_B <= t <= (j + 1) * FIGHT_B:
                         xs.append(x)

@@ -20,11 +20,12 @@ Idle numbers are LOWER-BOUND estimates; cancels/garrisons invisible. Known
 residual: an ORDER onto an enemy unit standing in the farm ring still
 classifies the selection as farm villagers (no unit typing in the stream).
 """
-import sys, json, os
-from collections import defaultdict, Counter
+import json
+import os
+from collections import Counter, defaultdict
 
 import extract_full
-from replaylib import load_match, sec, mmss
+from replaylib import load_match, mmss, sec
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TT = json.load(open(os.path.join(HERE, 'data', 'techtree.json')))
@@ -110,7 +111,7 @@ def analyze(m, out_label, ex):
             if ty == 'BUILD' and pl.get('building') == 'Farm' and ok_pos(a.position, dim) and t <= H:
                 farm_pos.append((a.position.x, a.position.y))
 
-        def near_farm(pos):
+        def near_farm(pos, farm_pos=farm_pos):  # default-bind the per-player loop var
             return pos and any((pos.x - x) ** 2 + (pos.y - y) ** 2 <= 6.25 for x, y in farm_pos)
 
         # pass 2: commands
@@ -192,14 +193,14 @@ def analyze(m, out_label, ex):
         # birth idle: only meaningful with no resource rally
         birth_idle, first_cmds = 0, sorted(min(t for t, *_ in cmds[v]) for v in new_ids)
         if not res_rally:
-            for b, f in zip(births, first_cmds):
+            for b, f in zip(births, first_cmds, strict=False):
                 if f > b + 5:
                     birth_idle += min(f, H) - b - 5
 
         # timeseries lookup for tail corroboration
         ts = ts_by_name.get(p.name, [])
 
-        def obj_delta(t0, t1):
+        def obj_delta(t0, t1, ts=ts):  # default-bind the per-player loop var
             a = [r[1] for r in ts if r[0] <= t0]
             b = [r[1] for r in ts if r[0] <= t1]
             return (b[-1] - a[-1]) if a and b else None
@@ -214,7 +215,7 @@ def analyze(m, out_label, ex):
             cl = sorted(cmds.get(v, []))
             vidle, busy_end, details = 0, None, []
 
-            def window(end, nxt, reason):
+            def window(end, nxt, reason, v=v, tails=tails, details=details):  # bind loop vars
                 nonlocal vidle
                 gap = nxt[0] - end
                 if gap <= 20:
@@ -229,7 +230,7 @@ def analyze(m, out_label, ex):
                     vidle += gap - 20
                     details.append(f'{mmss(end)} +{int(gap-20)}s after {reason}')
 
-            for (t, kind, d1, d2), nxt in zip(cl, cl[1:] + [(H, 'END', None, None)]):
+            for (t, kind, d1, d2), nxt in zip(cl, cl[1:] + [(H, 'END', None, None)], strict=False):
                 start = t if busy_end in (None, 'inf') else max(t, busy_end)
                 if kind == 'build':
                     n, bid = d2
@@ -281,7 +282,7 @@ def analyze(m, out_label, ex):
             verdict = 'LIKELY DEAD' if (fight or (d is not None and d < 0)) else 'likely idle'
             print(f'    vill {v} silent from {mmss(end)} ({int(gap)}s, after {reason}) '
                   f'{fight} objΔ={d} -> {verdict}')
-        print(f'  task census: ' + ', '.join(f'{k}:{v}' for k, v in census.most_common()))
+        print('  task census: ' + ', '.join(f'{k}:{v}' for k, v in census.most_common()))
         for vidle, v, det in sorted(stories, reverse=True)[:4]:
             print(f'    vill {v}: {int(vidle)}s — ' + '; '.join(det))
         # research ledger w/ cancel rule, per building

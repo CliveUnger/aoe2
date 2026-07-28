@@ -43,7 +43,7 @@ def hms(td, none='?'):
     return str(td).split('.')[0] if td is not None else none
 
 logging.disable(logging.CRITICAL)
-from mgz.model import parse_match  # noqa: E402
+from mgz.model import parse_match
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE_DIR = os.path.join(HERE, 'data', 'match_cache')

@@ -25,8 +25,8 @@ invisible to the pop sim, and the resource bank is a single 4-resource sum.
 import argparse
 from collections import defaultdict
 
-from replaylib import load_match, sec, mmss
 from extract_full import build_extract
+from replaylib import load_match, mmss, sec
 
 AGE_DUR = {'Feudal': 130, 'Castle': 160, 'Imperial': 190}
 TRAIN = {  # seconds; unlisted units default to 22
@@ -141,7 +141,7 @@ def main():
             continue
         tcs = [b[2] for b in p['builds'] if b[4] == 'Town Center']
         firsts = {}
-        for t, uid, u, amt in p['prod_events']:
+        for t, _uid, u, _amt in p['prod_events']:
             firsts.setdefault(u, t)
         castle_units = [(u, t) for u, t in firsts.items() if BUILDING_OF.get(u) in
                         ('Stable', 'Siege Workshop', 'Monastery') or
@@ -178,7 +178,7 @@ def main():
 
     # 3 ─ military production idle
     built = defaultdict(list)
-    for x, y, t, bid, b in me['builds']:
+    for _x, _y, t, _bid, b in me['builds']:
         built[b].append(t + BUILD_TIME.get(b, 35))
     byb = defaultdict(list)
     for a in acts:
@@ -269,7 +269,7 @@ def main():
 
     # 8 ─ food ledger
     cats = defaultdict(int)
-    for t, kind, name, f, w, g, s in me['spend_events']:
+    for _t, kind, name, f, _w, _g, _s in me['spend_events']:
         if f:
             key = ('Villagers' if name == 'Villager'
                    else 'Ages' if name in AGE_DUR or name == 'Feudal Age'
@@ -302,7 +302,7 @@ def main():
     # 11 ─ absences checklist
     print("\n[11] CHECKLIST")
     bcount = defaultdict(int)
-    for x, y, t, bid, b in me['builds']:
+    for _x, _y, _t, _bid, b in me['builds']:
         bcount[b] += 1
     walls = sum(v for k, v in bcount.items() if 'Wall' in k or 'Gate' in k)
     towers = sum(v for k, v in bcount.items() if 'Tower' in k)

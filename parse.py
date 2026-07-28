@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Parse an AoE2:DE .aoe2record replay with mgz and emit a JSON summary."""
-import sys
 import json
+import sys
 from datetime import timedelta
 
-from replaylib import gc_paused, hms  # cyclic GC makes the parse ~6x slower; see replaylib
 from mgz.summary import Summary
+
+from replaylib import gc_paused, hms  # cyclic GC makes the parse ~6x slower; see replaylib
 
 
 def fmt(ms):

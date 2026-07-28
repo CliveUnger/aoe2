@@ -6,7 +6,8 @@ Usage: python analyze.py <replay.aoe2record>
 import sys
 from collections import defaultdict
 
-from replaylib import load_match, hms as fmt
+from replaylib import hms as fmt
+from replaylib import load_match
 
 
 def main(path):

@@ -13,10 +13,12 @@ Usage: extract_full.py <replay> <out.json>
 Cost tables come from data/techtree.json (SiegeEngineers/aoe2techtree
 data/data.json) — refresh it after game balance patches, never hand-edit.
 """
-import sys, json, os
+import json
+import os
+import sys
 from collections import Counter, defaultdict
 
-from replaylib import load_match, sec  # noqa: F401  (sec re-exported)
+from replaylib import load_match, sec  # sec is also re-exported for importers
 
 TECHTREE = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'techtree.json')))
 UNITS = {int(k): v for k, v in TECHTREE['data']['Unit'].items()}
@@ -147,7 +149,7 @@ def build_extract(m, replay):
                 spend_events[n].append([t, 'unit', uname,
                                         c['Food'] * amt, c['Wood'] * amt, c['Gold'] * amt, c['Stone'] * amt])
     for n in builds:
-        for x, y, t, bid, bname in builds[n]:
+        for _x, _y, t, bid, bname in builds[n]:
             c = cost_of(BUILDINGS, bid)
             if c:
                 spend_events[n].append([t, 'building', bname, c['Food'], c['Wood'], c['Gold'], c['Stone']])
@@ -171,7 +173,7 @@ def build_extract(m, replay):
     loss_events = []  # [t, n, delta]
     for p in m.players:
         rows = [[sec(r.timestamp), r.total_objects] for r in p.timeseries]
-        for (t0, o0), (t1, o1) in zip(rows, rows[1:]):
+        for (_t0, o0), (t1, o1) in zip(rows, rows[1:], strict=False):
             d = o1 - o0
             if d <= -3:
                 loss_events.append([t1, p.number, d])
