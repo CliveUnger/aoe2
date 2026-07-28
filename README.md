@@ -22,6 +22,24 @@ python analyze.py "<path to .aoe2record>"   # human-readable game summary
 python parse.py   "<path to .aoe2record>"   # JSON header dump
 ```
 
+## Performance: `replaylib.load_match`
+All tools load replays through `replaylib.py`, which does two things
+(~5–10x wall-clock vs calling `mgz.model.parse_match` directly):
+
+1. **Pauses the cyclic GC during the parse.** `parse_match` allocates ~1M
+   objects that all survive; Python's threshold GC rescans that growing heap
+   over and over (measured 3.5s → 0.6s on a 99-min replay). A `gc.collect()`
+   afterwards costs ~0.04s, so nothing is lost.
+2. **Caches the parsed `Match` as a pickle** in `data/match_cache/`
+   (gitignored, ~2–20 MB/replay). Keyed on replay mtime+size **and the
+   `aoc-mgz` checkout commit**, so editing the parser or the replay file
+   auto-invalidates; corrupt/stale entries fall back to a fresh parse.
+   Delete the directory freely to reclaim space.
+
+New scripts should use `from replaylib import load_match` instead of
+`parse_match`. The only difference from a raw parse: `m.hash` is the sha1
+hexdigest string (the declared type) instead of a live hashlib object.
+
 ## ⚠️ Local patch: save_version 68 support (mid-2026 DE patch)
 
 Our replays are DE **save_version 68.0** (build v101.103.48987 / 48086, `VER 9.4`).

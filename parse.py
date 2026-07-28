@@ -3,6 +3,8 @@
 import sys
 import json
 from datetime import timedelta
+
+from replaylib import gc_paused  # cyclic GC makes the parse ~6x slower; see replaylib
 from mgz.summary import Summary
 
 
@@ -13,7 +15,7 @@ def fmt(ms):
 
 
 def main(path):
-    with open(path, "rb") as f:
+    with open(path, "rb") as f, gc_paused():
         s = Summary(f)
 
     # get_players() has no team field on the v68 (ModelSummary) path and its

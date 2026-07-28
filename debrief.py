@@ -14,11 +14,9 @@ Needs the v68-patched mgz (editable clone at ./aoc-mgz, see README).
 import sys
 import json
 import argparse
-import logging
 from collections import Counter, defaultdict
 
-logging.disable(logging.CRITICAL)
-from mgz.model import parse_match  # noqa: E402
+from replaylib import load_match
 
 AGE_TECH = {101: "Feudal", 102: "Castle", 103: "Imperial"}
 AGE_RESEARCH_SECS = {"Feudal": 130, "Castle": 160, "Imperial": 190}  # research time; queue wait adds more
@@ -51,7 +49,7 @@ def main():
     ap.add_argument("--me", default="Olive", help="your in-game name (for the trail)")
     args = ap.parse_args()
 
-    m = parse_match(open(args.replay, "rb"))
+    m = load_match(args.replay)
     dim = m.map.dimension
 
     prod = defaultdict(Counter)          # number -> unit -> count

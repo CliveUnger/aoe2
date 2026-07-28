@@ -12,5 +12,8 @@ __pycache__/
 # vill_ledger.py's extract_full JSON cache
 data/extracts/
 
+# replaylib.py's pickled-parse cache (auto-invalidates on replay/parser change)
+data/match_cache/
+
 # macOS
 .DS_Store

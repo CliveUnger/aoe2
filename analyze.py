@@ -4,11 +4,9 @@
 Usage: python analyze.py <replay.aoe2record>
 """
 import sys
-import logging
 from collections import defaultdict
 
-logging.disable(logging.CRITICAL)
-from mgz.model import parse_match  # noqa: E402
+from replaylib import load_match
 
 
 def fmt(td):
@@ -16,7 +14,7 @@ def fmt(td):
 
 
 def main(path):
-    m = parse_match(open(path, "rb"))
+    m = load_match(path)
 
     print(f"Map:       {m.map.name} ({m.map.dimension}x{m.map.dimension})")
     print(f"Duration:  {fmt(m.duration)}   Completed: {m.completed}")

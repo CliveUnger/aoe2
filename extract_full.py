@@ -13,11 +13,10 @@ Usage: extract_full.py <replay> <out.json>
 Cost tables come from data/techtree.json (SiegeEngineers/aoe2techtree
 data/data.json) — refresh it after game balance patches, never hand-edit.
 """
-import sys, json, logging, os
+import sys, json, os
 from collections import Counter, defaultdict
 
-logging.disable(logging.CRITICAL)
-from mgz.model import parse_match
+from replaylib import load_match
 
 TECHTREE = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'techtree.json')))
 UNITS = {int(k): v for k, v in TECHTREE['data']['Unit'].items()}
@@ -46,9 +45,9 @@ def ok_pos(pos, dim):
     return pos and not (pos.x == 0 and pos.y == 0) and 0 <= pos.x <= dim and 0 <= pos.y <= dim
 
 
-def main():
-    replay, outpath = sys.argv[1], sys.argv[2]
-    m = parse_match(open(replay, 'rb'))
+def build_extract(m, replay):
+    """The full extraction, as a dict, from an already-parsed Match.
+    Importable (vill_ledger.py uses it in-process to avoid a second parse)."""
     dim = m.map.dimension
     dur = sec(m.duration)
 
@@ -213,7 +212,7 @@ def main():
             'ts': [[sec(r.timestamp), r.total_objects, r.total_resources] for r in p.timeseries],
         })
 
-    out = {
+    return {
         'file': replay, 'map': m.map.name, 'dim': dim, 'duration': dur,
         'completed': m.completed,
         'players': players,
@@ -226,9 +225,14 @@ def main():
                   'msg': c.message}
                  for c in m.chat],
     }
+
+
+def main():
+    replay, outpath = sys.argv[1], sys.argv[2]
+    out = build_extract(load_match(replay), replay)
     json.dump(out, open(outpath, 'w'), separators=(',', ':'))
-    print(f'{outpath}: {dur//60}min, windows={len(windows)}, '
-          f'civ_invalid={ {name_by_n[n]: dict(c) for n, c in civ_invalid.items()} }')
+    print(f'{outpath}: {out["duration"]//60}min, windows={len(out["fight_windows"])}, '
+          f'civ_invalid={ {p["name"]: p["civ_invalid_dropped"] for p in out["players"]} }')
 
 
 if __name__ == '__main__':

@@ -20,11 +20,11 @@ Idle numbers are LOWER-BOUND estimates; cancels/garrisons invisible. Known
 residual: an ORDER onto an enemy unit standing in the farm ring still
 classifies the selection as farm villagers (no unit typing in the stream).
 """
-import sys, json, logging, os
+import sys, json, os
 from collections import defaultdict, Counter
 
-logging.disable(logging.CRITICAL)
-from mgz.model import parse_match
+import extract_full
+from replaylib import load_match
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TT = json.load(open(os.path.join(HERE, 'data', 'techtree.json')))
@@ -70,26 +70,32 @@ def mmss(s):
     return f'{int(s)//60}:{int(s)%60:02d}'
 
 
-def analyze(replay, out_label, extract_json):
-    m = parse_match(open(replay, 'rb'))
+def analyze(m, out_label, ex):
     dim = m.map.dimension
     gaia = {o.instance_id: (o.name, o.position) for o in m.gaia}
-    ex = json.load(open(extract_json))
     ts_by_name = {q['name']: q['ts'] for q in ex['players']}
     fights = ex['fight_windows']
     print(f'\n{"="*94}\n{out_label}')
 
+    # group once by player: the per-player passes below then only walk that
+    # player's own commands instead of re-scanning all actions (AI spam incl.)
+    acts_by_n = defaultdict(list)
+    for a in m.actions:
+        if a.player is not None:
+            acts_by_n[a.player.number].append(a)
+
     for p in m.players:
         if not p.name:
             continue
+        pacts = acts_by_n.get(p.number, [])
         start_vills = [o.instance_id for o in p.objects if o.name and 'Villager' in o.name]
         scout_ids = {o.instance_id for o in p.objects if o.name and 'Scout' in o.name}
 
         ages = {}
         all_research = defaultdict(list)  # (bld,tech) full-game clicks for cancel rule
         seen_res = set()
-        for a in m.actions:
-            if a.player is p and a.type.name == 'RESEARCH':
+        for a in pacts:
+            if a.type.name == 'RESEARCH':
                 pl = a.payload or {}
                 key = dedup_key(a, pl)
                 if key in seen_res:  # POV duplicate record, not a re-click
@@ -105,9 +111,7 @@ def analyze(replay, out_label, extract_json):
 
         # pass 1: TC ids + farm positions
         tc_ids, farm_pos = set(), []
-        for a in m.actions:
-            if a.player is not p:
-                continue
+        for a in pacts:
             ty, pl, t = a.type.name, a.payload or {}, sec(a.timestamp)
             if ty == 'DE_QUEUE' and pl.get('unit') == 'Villager':
                 tc_ids.update(pl.get('object_ids') or [])
@@ -122,8 +126,8 @@ def analyze(replay, out_label, extract_json):
         cmds = defaultdict(list)
         rallies = []
         vq = []
-        for a in m.actions:
-            if a.player is not p or sec(a.timestamp) > H:
+        for a in pacts:
+            if sec(a.timestamp) > H:
                 continue
             ty, pl, t = a.type.name, a.payload or {}, sec(a.timestamp)
             if ty in ('MAKE', 'DE_QUEUE', 'RESEARCH', 'BUILD'):
@@ -313,16 +317,17 @@ SAVE = os.path.expanduser('~/Library/Application Support/Feral Interactive/Age O
 LEGACY = {'G1': '144944', 'G2': '151015', 'G3': '165218', 'G4': '172654'}
 
 
-def extract_for(replay, cache_dir):
-    """Return the extract_full.py JSON for a replay, generating it if missing."""
+def extract_for(m, replay, cache_dir):
+    """Return the extract_full data for a replay, from the JSON cache or built
+    in-process from the already-parsed match (no subprocess, no re-parse)."""
     os.makedirs(cache_dir, exist_ok=True)
     stem = os.path.splitext(os.path.basename(replay))[0]
     out = os.path.join(cache_dir, stem + '.json')
-    if not os.path.exists(out):
-        import subprocess
-        subprocess.run([sys.executable, os.path.join(HERE, 'extract_full.py'), replay, out],
-                       check=True)
-    return out
+    if os.path.exists(out):
+        return json.load(open(out))
+    ex = extract_full.build_extract(m, replay)
+    json.dump(ex, open(out, 'w'), separators=(',', ':'))
+    return ex
 
 
 def main():
@@ -340,7 +345,8 @@ def main():
             label = r
         else:
             path, label = r, os.path.basename(r)
-        analyze(path, label, extract_for(path, args.extract_dir))
+        m = load_match(path)
+        analyze(m, label, extract_for(m, path, args.extract_dir))
 
 
 if __name__ == '__main__':

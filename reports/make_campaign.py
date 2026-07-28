@@ -27,12 +27,11 @@ import sys
 import json
 import math
 import argparse
-import logging
 from pathlib import Path
 from collections import defaultdict, Counter
 
-logging.disable(logging.CRITICAL)
-from mgz.model import parse_match  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # repo root, for replaylib
+from replaylib import load_match  # noqa: E402
 
 AGE_ID = {101: "Feudal", 102: "Castle", 103: "Imperial"}
 AGE_RS = {"Feudal": 130, "Castle": 160, "Imperial": 190}
@@ -57,7 +56,7 @@ def sec(td):
 
 
 def extract(path, ally_names):
-    m = parse_match(open(path, "rb"))
+    m = load_match(path)
     dim, dur = m.map.dimension, sec(m.duration)
     ally_idx = {nm: i for i, nm in enumerate(ally_names)}
 

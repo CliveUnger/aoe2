@@ -36,6 +36,18 @@ Note: the full construct `FullSummary` still fails later in `initial` object par
 works: header + body + actions + timeseries.
 
 ## Tools in this repo
+- `replaylib.py` — **shared replay loader (2026-07-26 optimization pass): ALWAYS use
+  `from replaylib import load_match` instead of `mgz.model.parse_match` in new/scratch
+  scripts.** Two effects, ~5–10x wall-clock: (1) pauses the cyclic GC around the parse —
+  parse_match allocates ~1M surviving objects and threshold GC rescans them repeatedly
+  (measured 3.5s → 0.6s on the 99-min G2); (2) pickle-caches the parsed Match in
+  `data/match_cache/` (gitignored; keyed on replay mtime+size + aoc-mgz commit, so parser
+  edits auto-invalidate; corrupt entries fall back to reparse; warm hit ~0.06–0.3s).
+  Only difference vs raw parse: `m.hash` is normalized to the sha1 hexdigest str (raw
+  fast-path leaves a live unpicklable hashlib object there; nothing reads it). All five
+  tools + make_campaign go through it; vill_ledger no longer double-parses (it imports
+  `extract_full.build_extract` in-process instead of a subprocess) and groups actions by
+  player once instead of 3 full scans/player. Outputs verified byte-identical pre/post.
 - `analyze.py <replay>` — human-readable summary (map, duration, civs, teams, age-ups, eAPM).
 - `parse.py <replay>` — JSON dump of header/summary fields.
 - `debrief.py <replay> [--me NAME]` — **full analysis JSON** (per-player composition, age-ups,
@@ -196,6 +208,19 @@ proven by the vill ledger), :60 clock rounding, editorial "match" guard. G1-G4 h
 findings (rally points, float, late Castle) all reverified unchanged after the fixes.
 
 ## Published artifacts (claude.ai) — update in place with the Artifact tool's `url=` param
+- **The Two-Hour War** (2026-07-26, the 12:19 2h08m Arabia 3v2 vs Maya+Spanish AI — PAUSED
+  mid-game on the verge of winning, may be resumed; save-quit at 2:08:29 makes mgz mark the
+  AIs "winners" — artifact, footnoted in the report): momentum (cumulative net attrition)
+  hero chart w/ lead-flip annotation, four-act structure, last-session targets scorecard
+  (0/5 hit — Olive 2 smith techs by 20:00 vs 0 all last week), 36-fight combat log,
+  animated map, roster cards, franchise records wall (6 of 10 fell today: longest game,
+  Olive 1,032 units + 147 vills, squad 1,936, 36 battles, ricky 33 trade carts + 2,029
+  cmds). Data: `data/extracts/` (now covers ALL replays) via scratchpad build_stats.py →
+  report_data.json; source two_hour_war.html in session scratchpad. Palette (validated,
+  dark #171a20): Olive #b8871f, studious #1a9c8c, ricky #8873e8, enemy #d95040, squad-side
+  blue #5b8fd9. If the game is RESUMED, the continuation is a NEW replay file — regenerate
+  with both, or add a "Part II" to this page.
+  `https://claude.ai/code/artifact/5e157fc6-b1b9-4759-8ee9-b771b2b5f6e0`
 - **After-action report** (Arabia 2v2 loss): force curve, composition matchup, upgrade tempo,
   animated + heatmap map-control view. `https://claude.ai/code/artifact/16f89f0c-c92c-44ed-b288-2567a4b06704`
 - **Counter card** (combined-arms "what beats what", Britons-specific, audited):
