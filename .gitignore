@@ -1,7 +1,7 @@
 # Python virtualenv
 venv/
 
-# Editable mgz clone — separate git repo (branch support-save-version-68).
+# Editable mgz clone — separate git repo (our hard fork CliveUnger/aoc-mgz, on master).
 # Reproduce per README; not vendored here.
 aoc-mgz/
 

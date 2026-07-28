@@ -11,29 +11,26 @@ He mains **Britons**. Replays live under the Feral (macOS) port:
 
 ## Setup / environment
 - `venv/` — Python 3.14 virtualenv (gitignored).
-- `aoc-mgz/` — an **editable clone** of happyleavesaoc/aoc-mgz (gitignored), on branch
-  **`support-save-version-68`**. Installed with `pip install -e ./aoc-mgz`.
+- `aoc-mgz/` — an **editable clone** (gitignored — it's its own git repo) of our **hard fork**
+  `git@github.com:CliveUnger/aoc-mgz.git`. Installed with `pip install -e ./aoc-mgz`.
 - Activate with `source venv/bin/activate` before running anything.
 
-### ⚠️ The save_version 68 patch (critical)
-Clive's replays are DE **save_version 68.0** (build 101.103.48987/48086, `VER 9.4`), which
-**no released mgz supports** (PyPI 1.8.51 == upstream HEAD only reach ~66.3/67; open PRs
-#139/#142 stop at 67). We reverse-engineered the delta and patched it. v68 adds exactly:
-1. one trailing (empty) `de_string` per player, and
-2. 8 trailing bytes at the end of the `de` header block (before the `ai` section).
-Patched in **both** parser paths — `mgz/header/de.py` (construct) and `mgz/fast/header.py`
-(fast; this is the one `parse_match`/`ModelSummary` actually use) — gated on `save_version >= 67.5`.
-The fix is **committed** on the `support-save-version-68` branch (commit `c8e02cb` "Add support
-for DE save_version 68") and **pushed to Clive's fork**: remote `clive` →
-`git@github.com:CliveUnger/aoc-mgz.git` (branch tracks `clive/support-save-version-68`). `origin`
-still points at upstream happyleavesaoc/aoc-mgz. The **PR is not yet opened** (Clive deferred it,
-2026-07-25) — open with `gh pr create --repo happyleavesaoc/aoc-mgz --head CliveUnger:support-save-version-68`
-when ready; upstream author has been unresponsive to recent PRs (#139/#142). If mgz gets
-reinstalled/reset, re-checkout that branch or reapply from `README.md`.
+### The mgz hard fork (decided 2026-07-27)
+**CliveUnger/aoc-mgz is the canonical mgz** — no PRs to upstream, we develop in our own
+direction. In the clone: remote `origin` = the fork, `upstream` = happyleavesaoc/aoc-mgz
+(reference only; its author was unresponsive to PRs). **Work on `master`** — it has the
+save_version 68 support merged (fork PRs #2/#3, incl. a v68 test replay + full-parser fix)
+plus modernized tooling (uv/pyproject, ruff, pytest, CI). The old local branch
+`support-save-version-68` is superseded by master.
 
-Note: the full construct `FullSummary` still fails later in `initial` object parsing for v68
-(not yet reverse-engineered), but that's unused — `mgz.model.parse_match` (fast path) fully
-works: header + body + actions + timeseries.
+The v68 delta, for reference (Clive's replays are DE save_version 68.0, build
+101.103.48987/48086, `VER 9.4`; no upstream mgz release supports it): one trailing (empty)
+`de_string` per player + 8 trailing bytes at the end of the `de` header block, gated
+`save_version >= 67.5`, patched in **both** parser paths (`mgz/header/de.py` construct and
+`mgz/fast/header.py` fast — the one `parse_match` actually uses). The full construct
+`FullSummary` still fails later in `initial` object parsing for v68 (not reverse-engineered),
+but that's unused — `mgz.model.parse_match` (fast path) fully works: header + body +
+actions + timeseries.
 
 ## Tools in this repo
 - `replaylib.py` — **shared replay loader (2026-07-26 optimization pass): ALWAYS use
@@ -329,5 +326,4 @@ by 22:00); team Castle click ≤19:30. Scratch analysis scripts: /tmp/aoe2-today
   gold split; late upgrades; defensive pinning). This is the highest-value next analysis.
 - Pull **actual engagements** from the Arabia game (cluster attack orders; which fights were lost in
   the open vs a choke; where Huskarls broke the line).
-- **Upstream** the v68 fix (push branch to a fork, open PR extending #139/#142) — needs `gh` auth + fork.
 - Consider committing the report/counter-card HTML generators into this repo if we keep iterating.

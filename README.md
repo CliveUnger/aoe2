@@ -2,25 +2,36 @@
 
 Parses `.aoe2record` replays (Feral macOS port, under
 `~/Library/Application Support/Feral Interactive/.../Age of Empires 2 DE/<steamid>/savegame/`)
-using [mgz](https://github.com/happyleavesaoc/aoc-mgz).
+and produces coaching after-action reports.
+
+The parser is our **hard fork** of mgz: [CliveUnger/aoc-mgz](https://github.com/CliveUnger/aoc-mgz)
+(canonical as of 2026-07-27; upstream happyleavesaoc/aoc-mgz is kept only as a
+reference remote). The fork's `master` carries save_version 68 support and the
+modernized tooling (uv/pyproject, ruff, pytest).
 
 ## Setup
-mgz is checked out as an **editable clone** at `./aoc-mgz` on branch
-`support-save-version-68`, which carries our save_version 68 fix (see below).
+mgz is an **editable clone** at `./aoc-mgz` (gitignored — it's its own repo):
 ```bash
+git clone git@github.com:CliveUnger/aoc-mgz.git
 python3 -m venv venv
 source venv/bin/activate
-pip install -e ./aoc-mgz        # editable: edits in ./aoc-mgz are live + git-tracked
+pip install -e ./aoc-mgz        # editable: parser edits are live immediately
 ```
-To recreate the clone: `git clone https://github.com/happyleavesaoc/aoc-mgz.git`
-then `git checkout -b support-save-version-68` and apply the patch below.
 
-## Usage
+## Tools
 ```bash
 source venv/bin/activate
-python analyze.py "<path to .aoe2record>"   # human-readable game summary
-python parse.py   "<path to .aoe2record>"   # JSON header dump
+python analyze.py      "<replay>"             # human-readable game summary
+python parse.py        "<replay>"             # JSON header dump
+python debrief.py      "<replay>" [--me NAME] # full analysis JSON (data layer for reports)
+python extract_full.py "<replay>" <out.json>  # superset extractor (spend, trails, fights)
+python vill_ledger.py  "<replay>"...          # per-villager task/idle ledger
+python audit.py        "<replay>" [--me NAME] # granular slip-up ledger (idles, cancels,
+                                              #   stalls, rally/market audit, checklist)
+python reports/make_campaign.py out.html "<replays>"...   # N-game squad report
 ```
+See `AGENTS.md` for the full handoff: model API cheatsheet, metric gotchas
+(read these before quoting any number), and session-by-session findings.
 
 ## Performance: `replaylib.load_match`
 All tools load replays through `replaylib.py`, which does two things
@@ -40,34 +51,13 @@ New scripts should use `from replaylib import load_match` instead of
 `parse_match`. The only difference from a raw parse: `m.hash` is the sha1
 hexdigest string (the declared type) instead of a live hashlib object.
 
-## ⚠️ Local patch: save_version 68 support (mid-2026 DE patch)
-
-Our replays are DE **save_version 68.0** (build v101.103.48987 / 48086, `VER 9.4`).
-As of 2026-07-22, **no released mgz (PyPI 1.8.51 == git HEAD) supports 68** — it only
-reaches ~66.3/67. We reverse-engineered the delta and patched the installed mgz.
-The v68 format adds exactly two things vs 66.3:
-
-1. **One trailing `de_string` per player** (empty; likely a clan-tag/decoration field).
-2. **8 trailing bytes** at the end of the `de` header block, right before the `ai` section.
-
-These are applied in the venv in **both** parser paths:
-
-- `mgz/header/de.py` (full/construct parser)
-  - in `player` struct, after `unknown_de_64_3`:
-    `"unknown_de_68"/If(lambda ctx: find_save_version(ctx) >= 67.5, de_string),`
-  - at end of `de` struct, after `ver37`:
-    `If(lambda ctx: find_save_version(ctx) >= 67.5, Bytes(8)),`
-- `mgz/fast/header.py` (fast parser — this is the one `Summary`/`parse_match` use)
-  - in `parse_de` player loop, after `if save >= 64.3: data.read(4)`:
-    `if save >= 67.5: de_string(data)`
-  - in `parse_de`, inside `if not skip:` after the `ver37` unpack:
-    `if save >= 67.5: data.read(8)`
-
-These now live as a **git commit** on `aoc-mgz` branch `support-save-version-68`
-(editable-installed), so they survive reinstalls and are PR-ready. `git -C aoc-mgz show`
-displays the exact diff. (`de.py.bak` / `patches/` are the earlier standalone-patch
-artifacts, kept for reference.)
-
-The clean path forward is to submit these upstream (extends open PRs #139/#142 which
-only reached save 67). The full construct parser still fails later in `initial` object
-parsing for v68, but `parse_match` (fast path) fully works: header + body + actions.
+## History: the save_version 68 fix (mid-2026 DE patch)
+Our replays are DE **save_version 68.0** (build v101.103.48987/48086, `VER 9.4`),
+which no released mgz supported (PyPI 1.8.51 reaches ~66.3/67). We
+reverse-engineered the delta — one trailing empty `de_string` per player plus
+8 trailing bytes at the end of the `de` header block, gated `save_version >= 67.5`
+— and patched both parser paths (`mgz/header/de.py` construct and
+`mgz/fast/header.py` fast). The fix is merged on the fork's `master` with a
+v68 test replay; `git -C aoc-mgz log` has the details. The full construct
+`FullSummary` still fails later in `initial` object parsing for v68 (unused);
+`parse_match` (fast path) fully works: header + body + actions + timeseries.
