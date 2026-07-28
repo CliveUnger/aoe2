@@ -6,11 +6,7 @@ Usage: python analyze.py <replay.aoe2record>
 import sys
 from collections import defaultdict
 
-from replaylib import load_match
-
-
-def fmt(td):
-    return str(td).split(".")[0] if td is not None else "?"
+from replaylib import load_match, hms as fmt
 
 
 def main(path):

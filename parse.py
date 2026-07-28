@@ -4,14 +4,12 @@ import sys
 import json
 from datetime import timedelta
 
-from replaylib import gc_paused  # cyclic GC makes the parse ~6x slower; see replaylib
+from replaylib import gc_paused, hms  # cyclic GC makes the parse ~6x slower; see replaylib
 from mgz.summary import Summary
 
 
 def fmt(ms):
-    if ms is None:
-        return None
-    return str(timedelta(milliseconds=ms)).split(".")[0]
+    return hms(timedelta(milliseconds=ms)) if ms is not None else None
 
 
 def main(path):

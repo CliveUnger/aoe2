@@ -31,7 +31,7 @@ from pathlib import Path
 from collections import defaultdict, Counter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # repo root, for replaylib
-from replaylib import load_match  # noqa: E402
+from replaylib import load_match, sec  # noqa: E402
 
 AGE_ID = {101: "Feudal", 102: "Castle", 103: "Imperial"}
 AGE_RS = {"Feudal": 130, "Castle": 160, "Imperial": 190}
@@ -49,10 +49,6 @@ FIGHT_B = 40          # attrition bucket (s)
 FIGHT_TH = 12         # combined gross losses to open a window
 FIGHT_CAP = 8         # max merged buckets (~5 min) — longer is a campaign
 ENDGAME_S = 60        # windows ending within this of game end are wipes
-
-
-def sec(td):
-    return round(td.total_seconds())
 
 
 def extract(path, ally_names):

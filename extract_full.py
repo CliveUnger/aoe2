@@ -16,7 +16,7 @@ data/data.json) — refresh it after game balance patches, never hand-edit.
 import sys, json, os
 from collections import Counter, defaultdict
 
-from replaylib import load_match
+from replaylib import load_match, sec  # noqa: F401  (sec re-exported)
 
 TECHTREE = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'techtree.json')))
 UNITS = {int(k): v for k, v in TECHTREE['data']['Unit'].items()}
@@ -27,10 +27,6 @@ CIV_OK = {c: {'Unit': set(v['Unit']), 'Tech': set(v['Tech']), 'Building': set(v[
 
 AGE_TECH = {101: 'Feudal', 102: 'Castle', 103: 'Imperial'}
 RES = ('Food', 'Wood', 'Gold', 'Stone')
-
-
-def sec(td):
-    return round(td.total_seconds())
 
 
 def cost_of(table, oid):

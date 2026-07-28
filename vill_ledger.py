@@ -24,7 +24,7 @@ import sys, json, os
 from collections import defaultdict, Counter
 
 import extract_full
-from replaylib import load_match
+from replaylib import load_match, sec, mmss
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TT = json.load(open(os.path.join(HERE, 'data', 'techtree.json')))
@@ -50,10 +50,6 @@ def res_type(name):
     return None
 
 
-def sec(td):
-    return round(td.total_seconds())
-
-
 def ok_pos(pos, dim):
     # (0,0) excluded as the null sentinel (same rule as debrief/extract_full)
     return pos and not (pos.x == 0 and pos.y == 0) and 0 <= pos.x <= dim and 0 <= pos.y <= dim
@@ -64,10 +60,6 @@ def dedup_key(a, pl):
     # alone is NOT unique — two different queues clicked the same tick share it.
     return (a.type.name, a.timestamp, pl.get('sequence'), pl.get('unit_id'),
             pl.get('technology_id'), pl.get('building_id'), str(pl.get('object_ids')))
-
-
-def mmss(s):
-    return f'{int(s)//60}:{int(s)%60:02d}'
 
 
 def analyze(m, out_label, ex):

@@ -1,0 +1,23 @@
+[project]
+name = "aoe2-analysis"
+version = "1.0.0"
+description = "AoE2:DE replay analysis and coaching-report toolkit"
+requires-python = ">=3.12"
+dependencies = [
+    "mgz",
+]
+
+[project.scripts]
+aoe2 = "cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["analyze", "audit", "cli", "debrief", "extract_full", "parse",
+              "replaylib", "vill_ledger"]
+
+# mgz is our hard fork, editable-cloned at ./aoc-mgz (see README Setup).
+[tool.uv.sources]
+mgz = { path = "aoc-mgz", editable = true }

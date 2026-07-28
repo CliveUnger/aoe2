@@ -25,8 +25,8 @@ invisible to the pop sim, and the resource bank is a single 4-resource sum.
 import argparse
 from collections import defaultdict
 
-from replaylib import load_match
-from extract_full import build_extract, sec
+from replaylib import load_match, sec, mmss
+from extract_full import build_extract
 
 AGE_DUR = {'Feudal': 130, 'Castle': 160, 'Imperial': 190}
 TRAIN = {  # seconds; unlisted units default to 22
@@ -53,10 +53,6 @@ BUILD_TIME = {'Barracks': 30, 'Archery Range': 35, 'Stable': 35,
               'Town Center': 100, 'House': 25, 'Blacksmith': 40}
 FOOD_MILITARY = ('Militia', 'Spearman', 'Skirmisher', 'Scout Cavalry', 'Knight',
                  'Camel Rider', 'Eagle Scout', 'Long Swordsman', 'Pikeman')
-
-
-def mmss(s):
-    return f"{int(s) // 60}:{int(s) % 60:02d}"
 
 
 def dedup_actions(m, number):

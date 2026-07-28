@@ -9,11 +9,19 @@ Tools to parse and analyze Clive's Age of Empires II: Definitive Edition replays
 He mains **Britons**. Replays live under the Feral (macOS) port:
 `~/Library/Application Support/Feral Interactive/Age Of Empires II/VFS/User/Games/Age of Empires 2 DE/76561198081802645/savegame/`
 
-## Setup / environment
-- `venv/` — Python 3.14 virtualenv (gitignored).
-- `aoc-mgz/` — an **editable clone** (gitignored — it's its own git repo) of our **hard fork**
-  `git@github.com:CliveUnger/aoc-mgz.git`. Installed with `pip install -e ./aoc-mgz`.
-- Activate with `source venv/bin/activate` before running anything.
+## Setup / environment (uv-managed since 2026-07-27)
+- `pyproject.toml` + `uv.lock` — declares deps; `mgz` resolves to the **editable clone**
+  at `./aoc-mgz` via `[tool.uv.sources]`. Bootstrap: clone the fork into `./aoc-mgz`,
+  then `uv sync` (creates `.venv/`, gitignored).
+- `aoc-mgz/` — the editable clone (gitignored — it's its own git repo) of our **hard fork**
+  `git@github.com:CliveUnger/aoc-mgz.git`.
+- **One CLI fronts everything**: `aoe2 <analyze|parse|debrief|extract|ledger|audit|campaign|latest>`
+  (entry point in `cli.py`; run via `.venv/bin/aoe2` or `uv run aoe2`). The word `latest`
+  in place of a replay path expands to the newest replay in the savegame dir
+  (`AOE2_SAVEGAME_DIR` overrides) — e.g. `aoe2 audit latest`. The per-tool
+  `python analyze.py ...` invocations below still work identically.
+- Shared helpers live in `replaylib.py` (`load_match`, `sec`, `mmss`, `hms`) — import from
+  there, don't redefine per-script (consolidated 2026-07-27, outputs verified byte-identical).
 
 ### The mgz hard fork (decided 2026-07-27)
 **CliveUnger/aoc-mgz is the canonical mgz** — no PRs to upstream, we develop in our own

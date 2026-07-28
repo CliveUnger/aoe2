@@ -26,6 +26,22 @@ import pickle
 from contextlib import contextmanager
 from hashlib import sha1
 
+
+def sec(td):
+    """Whole seconds from a timedelta."""
+    return round(td.total_seconds())
+
+
+def mmss(x):
+    """M:SS from seconds (int/float) or a timedelta."""
+    s = round(x.total_seconds()) if hasattr(x, 'total_seconds') else int(x)
+    return f'{s // 60}:{s % 60:02d}'
+
+
+def hms(td, none='?'):
+    """H:MM:SS from a timedelta, `none` when td is None."""
+    return str(td).split('.')[0] if td is not None else none
+
 logging.disable(logging.CRITICAL)
 from mgz.model import parse_match  # noqa: E402
 

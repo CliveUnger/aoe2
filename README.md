@@ -10,26 +10,31 @@ reference remote). The fork's `master` carries save_version 68 support and the
 modernized tooling (uv/pyproject, ruff, pytest).
 
 ## Setup
-mgz is an **editable clone** at `./aoc-mgz` (gitignored — it's its own repo):
+Dependencies are declared in `pyproject.toml`; `mgz` resolves to an **editable
+clone** of the fork at `./aoc-mgz` (gitignored — it's its own repo):
 ```bash
 git clone git@github.com:CliveUnger/aoc-mgz.git
-python3 -m venv venv
-source venv/bin/activate
-pip install -e ./aoc-mgz        # editable: parser edits are live immediately
+uv sync        # creates .venv/ with editable mgz + the `aoe2` CLI
 ```
 
-## Tools
+## Usage — the `aoe2` CLI
+One front door (`.venv/bin/aoe2`, or `uv run aoe2`). The word `latest` in place
+of a replay path means "the newest replay in the savegame dir"
+(`AOE2_SAVEGAME_DIR` overrides the default):
 ```bash
-source venv/bin/activate
-python analyze.py      "<replay>"             # human-readable game summary
-python parse.py        "<replay>"             # JSON header dump
-python debrief.py      "<replay>" [--me NAME] # full analysis JSON (data layer for reports)
-python extract_full.py "<replay>" <out.json>  # superset extractor (spend, trails, fights)
-python vill_ledger.py  "<replay>"...          # per-villager task/idle ledger
-python audit.py        "<replay>" [--me NAME] # granular slip-up ledger (idles, cancels,
-                                              #   stalls, rally/market audit, checklist)
-python reports/make_campaign.py out.html "<replays>"...   # N-game squad report
+aoe2 latest   [N]                   # print newest replay path(s)
+aoe2 analyze  <replay|latest>             # human-readable game summary
+aoe2 parse    <replay|latest>             # JSON header dump
+aoe2 debrief  <replay|latest> [--me NAME] # full analysis JSON (data layer for reports)
+aoe2 extract  <replay|latest> <out.json>  # superset extractor (spend, trails, fights)
+aoe2 ledger   <replays...>                # per-villager task/idle ledger
+aoe2 audit    <replay|latest> [--me NAME] # granular slip-up ledger (idles, cancels,
+                                          #   stalls, rally/market audit, checklist)
+aoe2 campaign out.html <replays...>       # N-game squad report
 ```
+Each subcommand runs the matching module (`analyze.py`, `audit.py`, …), which
+all remain directly runnable with `python <tool>.py` as before. Shared helpers
+(`load_match`, `sec`, `mmss`, `hms`) live in `replaylib.py`.
 See `AGENTS.md` for the full handoff: model API cheatsheet, metric gotchas
 (read these before quoting any number), and session-by-session findings.
 

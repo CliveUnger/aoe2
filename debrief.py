@@ -16,7 +16,7 @@ import json
 import argparse
 from collections import Counter, defaultdict
 
-from replaylib import load_match
+from replaylib import load_match, sec
 
 AGE_TECH = {101: "Feudal", 102: "Castle", 103: "Imperial"}
 AGE_RESEARCH_SECS = {"Feudal": 130, "Castle": 160, "Imperial": 190}  # research time; queue wait adds more
@@ -28,10 +28,6 @@ KEY_UPGRADES = {
     "Bloodlines", "Husbandry", "Forging", "Iron Casting", "Blast Furnace",
     "Chemistry", "Hoardings", "Loom", "Wheelbarrow", "Hand Cart",
 }
-
-
-def sec(td):
-    return round(td.total_seconds())
 
 
 def pname(p):
