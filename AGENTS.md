@@ -48,6 +48,18 @@ works: header + body + actions + timeseries.
   tools + make_campaign go through it; vill_ledger no longer double-parses (it imports
   `extract_full.build_extract` in-process instead of a subprocess) and groups actions by
   player once instead of 3 full scans/player. Outputs verified byte-identical pre/post.
+- `audit.py <replay> [--me NAME]` — **granular slip-up ledger** (added 2026-07-27 after the
+  Celts coaching session): every idle/cancel/stall/absence in one report. Sections: ages +
+  AI age proxies (TC2 + first Castle-unit queue), TC idle windows via queue sim w/ per-age
+  uptime, military-building idle (k-server sim per building type, openings from BUILD times),
+  housed-stall ONSETS (spawn-sim pop vs house cap — deaths invisible, so only onsets mean
+  anything), Unqueue/SPECIAL cancels + tech re-clicks, GATHER_POINT rally audit (flags
+  TC-rally-never-set — the #1 recurring finding, 5,471s birth idle in the 27min 1v1),
+  market build-vs-first-use lag, food ledger by category ("food-military ≈ N Castle Ages" —
+  the 2026-07-27 1v1 was FOOD-gated: 500f market-bought 4s before the Castle click),
+  input silences, fight-window command density, and a ✓/✗ checklist (walls, towers, TC2,
+  first farm ≤10:00, blacksmith ≤14:00, ≥4 smith techs by 20:00, TC rally). Reuses
+  extract_full.build_extract in-process + the same POV dedup on raw actions.
 - `analyze.py <replay>` — human-readable summary (map, duration, civs, teams, age-ups, eAPM).
 - `parse.py <replay>` — JSON dump of header/summary fields.
 - `debrief.py <replay> [--me NAME]` — **full analysis JSON** (per-player composition, age-ups,
